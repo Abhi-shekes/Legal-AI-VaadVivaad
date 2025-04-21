@@ -32,20 +32,20 @@ const Signup = () => {
     }
 
     try {
-      const resp = await axios.post("http://localhost:3000/register", {
-        username,
-        password,
-        email,
-      });
+      // const resp = await axios.post("http://localhost:3000/register", {
+      //   username,
+      //   password,
+      //   email,
+      // });
 
-      if (resp.data.status === "success") {
-        setConfirmation(resp.data.message);
+      // if (resp.data.status === "success") {
+      //   setConfirmation(resp.data.message);
         setTimeout(() => {
           window.location.href = "/login";
         }, 1000);
-      } else {
-        setError(resp.data.message);
-      }
+      // } else {
+      //   setError(resp.data.message);
+      // }
     } catch (err) {
       setError(
         err.response?.data?.message || "An error occurred. Please try again."
