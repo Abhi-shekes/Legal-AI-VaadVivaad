@@ -9,7 +9,7 @@ import PublicLayout from "./layouts/PublicLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import authStore from "./store/authStore"; // Zustand state for user authentication
 import CasePage from "./Pages/CasePage";
-
+import Contact from "./Pages/Contact";
 function App() {
   const { role } = authStore((state) => state);
 
@@ -20,6 +20,7 @@ function App() {
         <Route path="/" element={<Landing />} />
         <Route path="login" element={<Login />} />
         <Route path="signup" element={<Signup />} />
+        <Route path="contact" element={<Contact/>}/>
       </Route>
 
       {/* Protected Routes */}

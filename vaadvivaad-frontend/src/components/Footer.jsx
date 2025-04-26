@@ -25,8 +25,8 @@ const Footer = () => {
               icon={faBalanceScale} 
               className="mr-3 text-[#d4af37]" 
             />
-            <span className="text-[#0a2463]">Legal</span>
-            <span className="text-[#d4af37]">AI</span>
+            <span className="text-[#0a2463]">Nyaya</span>
+            <span className="text-[#d4af37]">Vada</span>
           </h1>
           <p
             className={`mt-2 transition-colors ${
@@ -47,22 +47,7 @@ const Footer = () => {
           >
             Home
           </Link>
-          <Link
-            to="/features"
-            className={`transition-colors duration-300 ease-in-out hover:text-[#d4af37] ${
-              theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-            }`}
-          >
-            Features
-          </Link>
-          <Link
-            to="/pricing"
-            className={`transition-colors duration-300 ease-in-out hover:text-[#d4af37] ${
-              theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-            }`}
-          >
-            Pricing
-          </Link>
+         
           <Link
             to="/contact"
             className={`transition-colors duration-300 ease-in-out hover:text-[#d4af37] ${
@@ -132,7 +117,7 @@ const Footer = () => {
           theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
         }`}
       >
-        © {new Date().getFullYear()} LegalAI. All rights reserved.
+        © {new Date().getFullYear()} NyayaVada. All rights reserved.
       </div>
     </footer>
   );
