@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import authStore from "../store/authStore";
 import themeStore from "../store/themeStore";
 import { motion } from "framer-motion";
+import backendURL from "../config"; 
 
 const Login = () => {
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -15,7 +16,6 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  // Using Zustand for authentication and theme management
   const { setLogIn } = authStore((state) => state);
   const { theme } = themeStore((state) => state);
 
@@ -28,35 +28,57 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setError("");
-
+    setError("");  
+    setConfirmation("");  
+  
     try {
-      // const resp = await axios.post(
-      //   "http://localhost:3000/login",
-      //   { email, password },
-      //   { withCredentials: true }
-      // );
-
-      // if (resp.data.status === "success" || true) {
-      //   setConfirmation(resp.data.message);
+      const formData = new FormData();
+      formData.append("email", email);
+      formData.append("password", password);
+  
+      const resp = await axios.post(
+        `${backendURL}/login`,
+        formData,
+        { withCredentials: true }
+      );
+  
+      if (resp.status === 200) {
+        setConfirmation("Login successful!");
+  
+        const { access_token, name, user_id } = resp.data;  
+  
+        localStorage.setItem("token", access_token);
+        localStorage.setItem("user", JSON.stringify({ email, name, role: "user", user_id }));
+  
+        setLogIn({
+          user: email,
+          name: name, 
+          role: "user",
+          user_id: user_id,  
+        });
+  
         setTimeout(() => {
-          setLogIn({
-            user: email,
-            role: "user",
-          });
           navigate("/user/dashboard");
         }, 1000);
-      // } else {
-      //   setError(resp.data.message);
-      // }
+      } else {
+        setError("Unexpected response from server.");
+      }
     } catch (err) {
-      setError(
-        err.response?.data?.message || "An error occurred. Please try again."
-      );
+      if (err.response) {
+        setError(
+          err.response?.data?.detail || "An error occurred. Please try again."
+        );
+      } else if (err.request) {
+        setError("Network error. Please check your connection.");
+      } else {
+        setError("An unexpected error occurred.");
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
+  
+  
 
   return (
     <div

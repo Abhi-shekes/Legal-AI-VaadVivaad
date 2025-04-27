@@ -1,12 +1,85 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { Scale, User, LogOut, FileText, Plus, Search } from "lucide-react"
 import CaseSubmissionForm from "../components/CaseSubmissionForm"
 import RecentCasesList from "../components/RecentCasesList"
+import backendURL from "../config"
+import { useNavigate } from "react-router-dom";
 
 export default function Dashboard() {
   const [showSubmissionForm, setShowSubmissionForm] = useState(false)
+  const [user, setUser] = useState(null)
+  const [caseSummary, setCaseSummary] = useState({
+    total_cases: 0,
+    not_solved_cases: 0,
+  })
+  const [successRate, setSuccessRate] = useState(0)
+
+  useEffect(() => {
+    const loggedInUser = JSON.parse(localStorage.getItem("user"))
+
+    if (loggedInUser) {
+      setUser(loggedInUser)
+      fetchCaseSummary(loggedInUser.user_id)
+    } else {
+      setUser(null)
+    }
+  }, [])
+
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (token) {
+        const response = await fetch(`${backendURL}/logout`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || `Logout failed with status ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (data.message) {
+          localStorage.removeItem("user");
+          localStorage.removeItem("token");
+          setUser(null);
+          navigate("/login");
+        }
+      }
+    } catch (error) {
+      console.error("Error logging out:", error);
+      alert(error.message || "An error occurred while logging out.");
+    }
+  };
+
+  // Fetch case summary
+  const fetchCaseSummary = async (userId) => {
+    try {
+      const response = await fetch(`${backendURL}/cases/summary/${userId}`);
+      if (response.ok) {
+        const data = await response.json();
+        const totalCases = data.total_cases;
+        const notSolvedCases = data.not_solved_cases;
+        const completedCases = totalCases - notSolvedCases;
+        const successRate = totalCases > 0 ? ((completedCases / totalCases) * 100).toFixed(2) : 0;
+
+        setCaseSummary({ total_cases: totalCases, not_solved_cases: notSolvedCases });
+        setSuccessRate(successRate);
+      } else {
+        throw new Error("Failed to fetch case summary");
+      }
+    } catch (error) {
+      console.error("Error fetching case summary:", error);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -28,14 +101,17 @@ export default function Dashboard() {
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-blue-300" />
               </div>
 
-              <div className="flex items-center">
-                <div className="w-8 h-8 bg-amber-500 rounded-full flex items-center justify-center text-blue-950 font-bold mr-2">
-                  A
+              {/* Display user name dynamically */}
+              {user && (
+                <div className="flex items-center">
+                  <div className="w-8 h-8 bg-amber-500 rounded-full flex items-center justify-center text-blue-950 font-bold mr-2">
+                    {user.name[0]} {/* Display the first letter of the user's name */}
+                  </div>
+                  <span className="font-medium">{user.name}</span>
                 </div>
-                <span className="font-medium">Adv. Sharma</span>
-              </div>
+              )}
 
-              <button className="text-blue-300 hover:text-white transition-colors">
+              <button onClick={handleLogout} className="text-blue-300 hover:text-white transition-colors">
                 <LogOut />
               </button>
             </div>
@@ -70,7 +146,7 @@ export default function Dashboard() {
               className="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-900"
             >
               <h3 className="text-lg font-medium text-gray-500 mb-2">Active Cases</h3>
-              <p className="text-3xl font-bold text-gray-800">12</p>
+              <p className="text-3xl font-bold text-gray-800">{caseSummary.not_solved_cases}</p>
             </motion.div>
 
             <motion.div
@@ -80,7 +156,7 @@ export default function Dashboard() {
               className="bg-white rounded-lg shadow-md p-6 border-l-4 border-amber-500"
             >
               <h3 className="text-lg font-medium text-gray-500 mb-2">Completed Cases</h3>
-              <p className="text-3xl font-bold text-gray-800">48</p>
+              <p className="text-3xl font-bold text-gray-800">{caseSummary.total_cases - caseSummary.not_solved_cases}</p>
             </motion.div>
 
             <motion.div
@@ -90,7 +166,7 @@ export default function Dashboard() {
               className="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500"
             >
               <h3 className="text-lg font-medium text-gray-500 mb-2">Success Rate</h3>
-              <p className="text-3xl font-bold text-gray-800">78%</p>
+              <p className="text-3xl font-bold text-gray-800">{successRate}%</p>
             </motion.div>
           </div>
 

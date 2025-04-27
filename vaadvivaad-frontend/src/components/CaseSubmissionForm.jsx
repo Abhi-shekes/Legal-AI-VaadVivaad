@@ -19,17 +19,22 @@ export default function CaseSubmissionForm({ onClose }) {
   }
 
   const handleSubmit = (e) => {
-    e.preventDefault()
-    setIsSubmitting(true)
-
-    // Simulate API call
+    e.preventDefault();
+    setIsSubmitting(true);
+  
+    const finalFormData = {
+      ...formData,
+      ipcSections: formData.ipcSections
+        ? formData.ipcSections.split(",").map((section) => section.trim())
+        : [],
+    };
+  
     setTimeout(() => {
       setIsSubmitting(false);
-      navigate("/user/casePage")
-      
-    }, 1500)
-  }
-
+      navigate("/user/casePage", { state: finalFormData }); // <-- passing data here
+    }, 1500);
+  };
+  
   return (
     <form onSubmit={handleSubmit} className="p-6">
       <div className="space-y-6">
@@ -75,7 +80,6 @@ export default function CaseSubmissionForm({ onClose }) {
             name="ipcSections"
             value={formData.ipcSections}
             onChange={handleChange}
-            required
             className="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-amber-500 focus:border-amber-500"
             placeholder="e.g., 376, 302, 120B"
           />

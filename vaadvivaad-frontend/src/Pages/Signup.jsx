@@ -4,6 +4,8 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEyeSlash, faBalanceScale, faLock, faUser, faEnvelope } from "@fortawesome/free-solid-svg-icons";
 import themeStore from "../store/themeStore";
 import { motion } from "framer-motion";
+import backendURL from "../config"; 
+
 
 const Signup = () => {
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -19,41 +21,52 @@ const Signup = () => {
   const handlePasswordVisibility = () => {
     setPasswordVisible(!passwordVisible);
   };
+  
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError("");
-
+    setConfirmation("");
+  
+    // Validate password length
     if (password.length < 6) {
       setError("Password must be at least 6 characters long.");
       setIsSubmitting(false);
       return;
     }
-
+  
     try {
-      // const resp = await axios.post("http://localhost:3000/register", {
-      //   name,
-      //   password,
-      //   email,
-      // });
-
-      // if (resp.data.status === "success") {
-      //   setConfirmation(resp.data.message);
+      const resp = await axios.post(`${backendURL}/signup`, {
+        name,
+        email,
+        password,
+      });
+  
+      // Check if the response contains the expected data
+      if (resp.data && resp.data.id && resp.data.email && resp.data.name) {
+        setConfirmation(`Account created successfully for ${resp.data.name}!`);
+        
+        // Redirect to login after successful signup
         setTimeout(() => {
           window.location.href = "/login";
         }, 1000);
-      // } else {
-      //   setError(resp.data.message);
-      // }
+      } else {
+        setError("Signup failed. Please try again.");
+      }
     } catch (err) {
+      console.error(err);
+      // Handling error based on response from the backend or generic error message
       setError(
-        err.response?.data?.message || "An error occurred. Please try again."
+        err.response?.data?.detail || "An error occurred. Please try again."
       );
     } finally {
       setIsSubmitting(false);
     }
   };
+  
+      
 
   return (
     <div
