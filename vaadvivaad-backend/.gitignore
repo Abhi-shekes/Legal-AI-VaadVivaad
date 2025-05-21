@@ -1,0 +1,64 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+*.log
+
+# Virtual environment
+venv/
+env/
+.venv/
+ENV/
+
+# IDEs
+.vscode/
+.idea/
+
+# Environment files
+.env
+.env.*
+
+# pytest
+.cache/
+.pytest_cache/
+
+# MyPy & coverage
+.mypy_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Pydantic artifacts
+*.json
+
+# Jupyter notebooks (optional)
+.ipynb_checkpoints/
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Docker
+*.sqlite3
+*.db
+*.pid
+docker-compose.override.yml
+
+# Node (if using frontend)
+node_modules/
+*.tsbuildinfo
+
+# PyInstaller
+*.spec
+
+# FastAPI static/uploads (if used)
+staticfiles/
+media/
+uploads/
