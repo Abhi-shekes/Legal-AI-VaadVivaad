@@ -16,7 +16,7 @@ class EvidenceResult(BaseModel):
 # Initialize vector store
 # Initialize vector store using settings
 vector_store = AstraDBVectorStore(
-    collection_name="case_laws",
+    collection_name="evidence_type",
     api_endpoint=settings.ASTRA_DB_API_ENDPOINT,
     token=settings.ASTRA_DB_APPLICATION_TOKEN,
     namespace=settings.ASTRA_DB_KEYSPACE,
