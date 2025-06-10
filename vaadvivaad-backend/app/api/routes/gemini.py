@@ -5,10 +5,10 @@ from app.controller.geminiController.ARGUMENT_MAIN import generate_argument, gen
 from app.controller.geminiController.COUNTER_ARGUMENT_MAIN import generate_counter_argument, generate_counter_argument_first_time
 from app.controller.geminiController.DRAFT_USER_INPUT_MAIN import generate_user_prompt_properly
 from app.controller.geminiController.EVIDENCE_MAIN import generate_evidence_for_section
-from app.controller.geminiController.IPC_SECTION_MAIN import generate_ipc_section
+from app.controller.geminiController.IPC_SECTION_MAIN import generate_ipc_section, generate_ipc_section_desc
 from app.controller.geminiController.SIMILAR_CASES_MAIN import get_similar_cases_for_section
 from app.controller.geminiController.SUMMARY_MAIN import get_summary
-from app.schemas.legal_gen import ArgumentRequest, ArgumentRequestFirstTime, EvidenceRequest, IPCSectionRequest, SimilarCasesRequest, SummaryRequest, UserPromptRequest
+from app.schemas.legal_gen import ArgumentRequest, ArgumentRequestFirstTime, EvidenceRequest, IPCSectionDescRequest, IPCSectionRequest, SimilarCasesRequest, SummaryRequest, UserPromptRequest
 
 
 router = APIRouter()
@@ -74,6 +74,11 @@ def api_generate_ipc_section(data: IPCSectionRequest):
     result = generate_ipc_section(data.user_prompt)
     return {"result": result}
 
+@router.post("/generate_ipc_section_desc")
+def api_generate_ipc_section_desc(data: IPCSectionDescRequest):
+    result = generate_ipc_section_desc(data.ipc_section)
+    return {"result": result}
+
 @router.post("/get_similar_cases_for_section")
 def api_get_similar_cases_for_section(data: SimilarCasesRequest):
     result = get_similar_cases_for_section(data.ipc_section)
@@ -83,9 +88,4 @@ def api_get_similar_cases_for_section(data: SimilarCasesRequest):
 def api_get_summary(data: SummaryRequest):
     result = get_summary(data.information)
     return {"result": result}
-
-@router.get("/")
-def api_get_summary():
-    return {"result": "backend is working"}
-
 

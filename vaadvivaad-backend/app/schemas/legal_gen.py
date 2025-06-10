@@ -17,6 +17,9 @@ class UserPromptRequest(BaseModel):
 class IPCSectionRequest(BaseModel):
     user_prompt: str
 
+class IPCSectionDescRequest(BaseModel):
+    ipc_section: str
+
 class EvidenceRequest(BaseModel):
     ipc_section: str
 
