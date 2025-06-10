@@ -1,19 +1,19 @@
-
 import json
 from typing import List, Dict
+
 
 def draft_prompt_for_argument(
     case_summary: str,
     similar_cases: List[Dict],
     ipc_sections_with_desc: List[Dict],
     evidence_types: List[Dict],
-    counter_arguments: List[Dict]
+    defense_arguments: List[Dict]
 ) -> str:
    
     prompt = f"""
-You are a senior legal strategist specializing in Indian criminal law.
+You are a senior legal strategist representing the plaintiff in an Indian criminal case.
 
-Use the context below to draft **two high-quality defense arguments**.
+Use the context below to draft **exactly two strong prosecution arguments** supporting the charges.
 
 --- CASE SUMMARY ---
 {case_summary}
@@ -27,40 +27,42 @@ Use the context below to draft **two high-quality defense arguments**.
 --- TYPICAL EVIDENCE PER IPC SECTION ---
 {json.dumps(evidence_types)}
 
+--- KNOWN DEFENSE ARGUMENTS ---
+{json.dumps(defense_arguments)}
+
 --- TASK ---
 
-Generate exactly two legal defense arguments in the following format  and be precise and short :
-- Title
-- Main Argument
-- Follow-Up Questions (for challenging the prosecution)
-- Requests for Specific Evidence
-- Observations or Legal Loopholes
+Generate exactly two legal arguments for the **plaintiff/prosecution** in the format below. Each argument must include:
+- A concise title
+- A strong legal argument
+- Exactly 2 follow-up questions
+- Exactly 2 requests for specific evidence
+- Exactly 2 observations or legal points
 
-### RETURN FORMAT (STRICTLY JSON)
-
-Return only the following JSON array — with no explanations or markdown:
+### STRICT RETURN FORMAT — VALID JSON ARRAY ONLY
 
 [
   {{
     "title": "string",
     "argument": "string",
-    "follow_up_questions": ["string", "..."],
-    "evidence_or_proof_requests": ["string", "..."],
-    "observations_or_loopholes": ["string", "..."]
+    "follow_up_questions": ["string", "string"],
+    "evidence_or_proof_requests": ["string", "string"],
+    "observations_or_legal_points": ["string", "string"]
   }},
   {{
     "title": "string",
     "argument": "string",
-    "follow_up_questions": ["string", "..."],
-    "evidence_or_proof_requests": ["string", "..."],
-    "observations_or_loopholes": ["string", "..."]
+    "follow_up_questions": ["string", "string"],
+    "evidence_or_proof_requests": ["string", "string"],
+    "observations_or_legal_points": ["string", "string"]
   }}
 ]
 
-⚠️ Return only valid JSON — no extra text, no headers, no markdown.
+⚠️ Output must be exactly the above format — no extra text, no markdown, no explanations.
 """.strip()
 
     return prompt
+
 
 
 def generate_supporting_argument_with_counter_prompt(
@@ -68,14 +70,13 @@ def generate_supporting_argument_with_counter_prompt(
     similar_cases: List[Dict],
     ipc_sections_with_desc: List[Dict],
     evidence_types: List[Dict],
-    counter_arguments: List[Dict]
+    defense_arguments: List[Dict]
 ) -> str:
     
-
     prompt = f"""
-You are a senior defense legal strategist in an Indian criminal trial.
+You are a senior legal strategist for the **plaintiff/prosecution** in an Indian criminal trial.
 
-Below is the case context and the prosecution's counter-arguments to the initial defense.
+Below is the case context and the **defense's counter-arguments** to the charges.
 
 --- CASE SUMMARY ---
 {case_summary}
@@ -89,37 +90,43 @@ Below is the case context and the prosecution's counter-arguments to the initial
 --- TYPICAL EVIDENCE TYPES ---
 {json.dumps(evidence_types)}
 
---- PROSECUTION'S COUNTER-ARGUMENTS ---
-{json.dumps(counter_arguments)}
+--- DEFENSE COUNTER-ARGUMENTS ---
+{json.dumps(defense_arguments)}
 
 --- TASK ---
 
-For each counter-argument, generate a **refined supporting argument** in favor of the defense.
+From the arguments above, choose any two of the **most critical defense arguments** and generate a **rebuttal for each** from the plaintiff's perspective.
 
-### REQUIRED FIELDS (PER ARGUMENT):
+Each rebuttal must include:
+- A concise title
+- A strong argument
+- Exactly 2 follow-up questions
+- Exactly 2 evidence or proof requests
+- Exactly 2 legal points or observations that weaken the defense
 
-- Title
-- Argument
-- Follow-Up Questions
-- Evidence or Proof Requests
-- Observations or Loopholes
-
-### RETURN FORMAT (STRICTLY JSON)
-
-Return a JSON array like:
+### STRICT RETURN FORMAT — VALID JSON ARRAY ONLY
 
 [
   {{
     "title": "string",
     "argument": "string",
-    "follow_up_questions": ["string", "..."],
-    "evidence_or_proof_requests": ["string", "..."],
-    "observations_or_loopholes": ["string", "..."]
+    "follow_up_questions": ["string", "string"],
+    "evidence_or_proof_requests": ["string", "string"],
+    "observations_or_legal_points": ["string", "string"]
   }},
-  ...
+  {{
+    "title": "string",
+    "argument": "string",
+    "follow_up_questions": ["string", "string"],
+    "evidence_or_proof_requests": ["string", "string"],
+    "observations_or_legal_points": ["string", "string"]
+  }}
 ]
 
-⚠️ Return only valid JSON with no additional commentary or formatting.
+⚠️ Output must be exactly the above format — no extra text, no markdown, no explanations.
 """.strip()
 
     return prompt
+
+
+
