@@ -4,12 +4,17 @@ from typing import List, Dict, Optional
 
 class ArgumentRequestFirstTime(BaseModel):
     case_summary: str
-    similar_cases: List[Dict]
-    ipc_sections_with_desc: List[Dict]
+    similar_cases: Dict
+    ipc_sections_with_desc: Dict
     evidence_types: List[str]
 
+class ArgumentPoint(BaseModel):
+    point: str
+    evidence: List[str]
+    demand: str
+
 class ArgumentRequest(ArgumentRequestFirstTime):
-    previous_argument: str
+    previous_argument: ArgumentPoint
 
 class UserPromptRequest(BaseModel):
     user_prompt: str

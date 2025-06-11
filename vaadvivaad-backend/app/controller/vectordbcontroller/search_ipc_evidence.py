@@ -63,8 +63,10 @@ def search_by_ipc_section_direct(ipc_section: str) -> List[EvidenceResult]:
         return formatted_results
     
     except Exception as e:
-        # This will be caught by FastAPI's exception handler
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error searching for IPC section {ipc_section}: {str(e)}"
-        )
+
+        error_message = str(e)
+        if "COLLECTION_NOT_EXIST" in error_message or "collection name: case_laws" in error_message:
+            print("Collection does not exist, returning empty case list.")
+        else:
+            print(f"Error in vector search: {error_message}")
+        return []  # Unified empty result for both collection-not-found and no match

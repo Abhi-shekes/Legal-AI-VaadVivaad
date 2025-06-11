@@ -15,8 +15,6 @@ router = APIRouter()
 
 
 
-
-
 @router.post("/generate_argument_first_time")
 def api_generate_argument_first_time(data: ArgumentRequestFirstTime):
     result = generate_argument_first_time(

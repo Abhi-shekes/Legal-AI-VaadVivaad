@@ -17,12 +17,16 @@ Use the following:
 
 🎯 Focus on reasonable doubt, procedural weaknesses, character defense, or inconsistencies. If cornered, raise questions, delay tactics, or legal ambiguity—while staying within ethical bounds.
 
-📄 Format your response like this:
+**IMPORTANT**: 
+✅ Return only **ONE** item as an array with exactly one object.  
+❌ Do not include more than one point or multiple JSON entries.  
+✅ Output **must** follow the exact JSON format below.
+
 [
   {{
-    "reply_point": "Insert counterpoint to the plaintiff's argument",
-    "loopholes_in_evidence": ["Insert weaknesses in the evidence"],
-    "reply_demand": "Insert request (dismissal, bail, or delay)"
+    "point": "Insert your argument point here",
+    "evidence": ["Insert key supporting evidence here"],
+    "demand": "Insert demand for judgment or penalty"
   }}
 ]
 """
@@ -41,12 +45,16 @@ Inputs:
 
 🧠 Your goal is to poke holes, exploit contradictions, or use technical/legal angles. If the case corners you, tactfully push for postponement or challenge jurisdiction.
 
-📄 Format your response like this:
+**IMPORTANT**: 
+✅ Return only **ONE** item as an array with exactly one object.  
+❌ Do not include more than one point or multiple JSON entries.  
+✅ Output **must** follow the exact JSON format below.
+
 [
   {{
-    "reply_point": "Specific response countering the plaintiff's claim",
-    "loopholes_in_evidence": ["New or highlighted flaws in their case"],
-    "reply_demand": "Delay or mitigate penalty; request bail or juvenile review"
+    "point": "Insert your argument point here",
+    "evidence": ["Insert key supporting evidence here"],
+    "demand": "Insert demand for judgment or penalty"
   }}
 ]
 """

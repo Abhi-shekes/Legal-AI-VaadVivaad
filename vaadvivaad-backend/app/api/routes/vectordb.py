@@ -140,9 +140,7 @@ async def search_case_laws(request: SimilarCaseRequest):
     try:
 
         similar_cases = find_similar_cases(
-            incident_description= request.incident_description,
-            k=1,
-            min_score=0.60
+            incident_description= request.incident_description
         )
 
         if similar_cases:

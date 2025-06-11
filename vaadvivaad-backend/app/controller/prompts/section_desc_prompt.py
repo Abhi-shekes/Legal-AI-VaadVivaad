@@ -121,13 +121,34 @@ Return only the JSON.
 
 
 def generate_ipc_section_from_prompt(user_input):
+    
+    ## Abhishek's prompt
+#     prompt = f"""
+# You are a legal assistant specialized in Indian criminal law.
+
+# Your task:
+# - Read the user’s layman-language case.
+# - Identify relevant Indian Penal Code (IPC) sections.
+# - Return **only a JSON array** of applicable IPC sections — no extra explanation.
+
+# Example:
+# User Description: "Someone stole my mobile phone at the railway station."
+# Output: ["Section 379"]
+
+# Now do the same for:
+# User Description: "{user_input}"
+
+# Output:
+# """.strip()
+    
+
     prompt = f"""
 You are a legal assistant specialized in Indian criminal law.
 
 Your task:
-- Read the user’s layman-language case.
-- Identify relevant Indian Penal Code (IPC) sections.
-- Return **only a JSON array** of applicable IPC sections — no extra explanation.
+- Read the user's layman-language case.
+- Identify the **single most relevant** Indian Penal Code (IPC) section.
+- Return **only a JSON array with one IPC section** — no explanation, no extra sections.
 
 Example:
 User Description: "Someone stole my mobile phone at the railway station."
@@ -138,5 +159,6 @@ User Description: "{user_input}"
 
 Output:
 """.strip()
+
 
     return prompt

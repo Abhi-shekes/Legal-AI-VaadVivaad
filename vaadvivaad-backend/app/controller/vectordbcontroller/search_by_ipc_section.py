@@ -35,8 +35,13 @@ def search_by_ipc_section(section: str) -> List[Dict[str, Any]]:
         return format_ipc_results(results)
         
     except Exception as e:
-        print(f"Error searching by IPC section: {str(e)}")
-        return []
+
+        error_message = str(e)
+        if "COLLECTION_NOT_EXIST" in error_message or "collection name: case_laws" in error_message:
+            print("Collection does not exist, returning empty case list.")
+        else:
+            print(f"Error in vector search: {error_message}")
+        return []  # Unified empty result for both collection-not-found and no match
 
 def search_ipc_section_query(query: str, limit: int = 1) -> List[Dict[str, Any]]:
     """
