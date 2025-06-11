@@ -5,6 +5,7 @@ import { faEye, faEyeSlash, faBalanceScale, faLock, faUser, faEnvelope } from "@
 import themeStore from "../store/themeStore";
 import { motion } from "framer-motion";
 import backendURL from "../config"; 
+import { useNavigate } from "react-router";
 
 
 const Signup = () => {
@@ -16,6 +17,8 @@ const Signup = () => {
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
 
+  const navigate = useNavigate();
+
   const { theme } = themeStore((state) => state);
 
   const handlePasswordVisibility = () => {
@@ -25,45 +28,43 @@ const Signup = () => {
 
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setError("");
-    setConfirmation("");
-  
-    // Validate password length
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters long.");
-      setIsSubmitting(false);
-      return;
-    }
-  
-    try {
-      const resp = await axios.post(`${backendURL}/signup`, {
-        name,
-        email,
-        password,
-      });
-  
-      // Check if the response contains the expected data
-      if (resp.data && resp.data.id && resp.data.email && resp.data.name) {
-        setConfirmation(`Account created successfully for ${resp.data.name}!`);
-        
-        // Redirect to login after successful signup
-        setTimeout(() => {
-          window.location.href = "/login";
-        }, 1000);
-      } else {
-        setError("Signup failed. Please try again.");
+
+      e.preventDefault();
+      setIsSubmitting(true);
+      setError("");
+      setConfirmation("");
+
+      // Validate password length
+      if (password.length < 6) {
+        setError("Password must be at least 6 characters long.");
+        setIsSubmitting(false);
+        return;
       }
-    } catch (err) {
-      console.error(err);
-      // Handling error based on response from the backend or generic error message
-      setError(
-        err.response?.data?.detail || "An error occurred. Please try again."
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
+
+      try {
+        const resp = await axios.post(
+          `${backendURL}/api/auth/signup`,
+          { name, email, password }
+        );
+
+        if (resp.data.status === "success") {
+          setConfirmation("Account created successfully! Redirecting to login...");
+          
+          // Redirect to login after successful signup
+          setTimeout(() => {
+            navigate("/login");
+          }, 2000);
+        } else {
+          setError(resp.data.message || "Signup failed. Please try again.");
+        }
+      } catch (err) {
+        console.error(err);
+        setError(
+          err.response?.data?.message || "An error occurred. Please try again."
+        );
+      } finally {
+        setIsSubmitting(false);
+      }
   };
   
       

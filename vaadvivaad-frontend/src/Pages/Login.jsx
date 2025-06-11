@@ -26,47 +26,36 @@ const Login = () => {
   };
 
   const handleSubmit = async (e) => {
+
     e.preventDefault();
     setIsSubmitting(true);
     setError("");  
     setConfirmation("");  
-  
+
     try {
-      const formData = new FormData();
-      formData.append("email", email);
-      formData.append("password", password);
-  
       const resp = await axios.post(
-        `${backendURL}/login`,
-        formData,
+        `${backendURL}/api/auth/login`,
+        { email, password },
         { withCredentials: true }
       );
-  
-      if (resp.status === 200) {
+
+      if (resp.data.status === "success") {
         setConfirmation("Login successful!");
-  
-        const { access_token, name, user_id } = resp.data;  
-  
-        localStorage.setItem("token", access_token);
-        localStorage.setItem("user", JSON.stringify({ email, name, role: "user", user_id }));
-  
-        setLogIn({
-          user: email,
-          name: name, 
-          role: "user",
-          user_id: user_id,  
-        });
-  
+        
+        
+        setLogIn(email,"user");
+
         setTimeout(() => {
           navigate("/user/dashboard");
         }, 1000);
+        
       } else {
-        setError("Unexpected response from server.");
+        setError(resp.data.message || "Login failed");
       }
     } catch (err) {
       if (err.response) {
         setError(
-          err.response?.data?.detail || "An error occurred. Please try again."
+          err.response?.data?.message || "An error occurred. Please try again."
         );
       } else if (err.request) {
         setError("Network error. Please check your connection.");

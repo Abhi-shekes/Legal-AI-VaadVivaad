@@ -8,7 +8,7 @@ import Dashboard from "./Pages/Dashboard";
 import PublicLayout from "./layouts/PublicLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import authStore from "./store/authStore"; // Zustand state for user authentication
-import CasePage from "./Pages/CasePage";
+import Case from "./Pages/Case";
 import Contact from "./Pages/Contact";
 function App() {
   const { role } = authStore((state) => state);
@@ -35,10 +35,10 @@ function App() {
         />
 
         <Route
-          path="/user/casePage"
+          path="/user/case"
           element={
             <ProtectedRoute>
-              <CasePage/>
+              <Case/>
             </ProtectedRoute>
           }
         />

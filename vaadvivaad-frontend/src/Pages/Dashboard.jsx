@@ -6,80 +6,79 @@ import CaseSubmissionForm from "../components/CaseSubmissionForm"
 import RecentCasesList from "../components/RecentCasesList"
 import backendURL from "../config"
 import { useNavigate } from "react-router-dom";
+import useAuthStore from "../store/authStore"
+import axios from "axios"
 
 export default function Dashboard() {
-  const [showSubmissionForm, setShowSubmissionForm] = useState(false)
-  const [user, setUser] = useState(null)
+  
+  const {user , setLogOut} = useAuthStore();
+
   const [caseSummary, setCaseSummary] = useState({
     total_cases: 0,
     not_solved_cases: 0,
   })
   const [successRate, setSuccessRate] = useState(0)
 
-  useEffect(() => {
-    const loggedInUser = JSON.parse(localStorage.getItem("user"))
+  // useEffect(() => {
+  //   const loggedInUser = JSON.parse(localStorage.getItem("user"))
 
-    if (loggedInUser) {
-      setUser(loggedInUser)
-      fetchCaseSummary(loggedInUser.user_id)
-    } else {
-      setUser(null)
-    }
-  }, [])
+  //   if (loggedInUser) {
+  //     setUser(loggedInUser)
+  //     fetchCaseSummary(loggedInUser.user_id)
+  //   } else {
+  //     setUser(null)
+  //   }
+  // }, [])
 
   const navigate = useNavigate();
 
   const handleLogout = async () => {
     try {
-      const token = localStorage.getItem("token");
-      if (token) {
-        const response = await fetch(`${backendURL}/logout`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`,
-          },
-        });
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.detail || `Logout failed with status ${response.status}`);
-        }
+      const resp = await axios.post("http://localhost:8000/api/auth/logout", {}, {
+          withCredentials: true  
+      });
 
-        const data = await response.json();
-        if (data.message) {
-          localStorage.removeItem("user");
-          localStorage.removeItem("token");
-          setUser(null);
+
+      if (resp.data.status === "success") {
+        
+        
+
+        setTimeout(() => {
+          setLogOut();
           navigate("/login");
-        }
+        }, 1000);
+        
+      } else {
+        alert("Something Went Wrong");
       }
+
     } catch (error) {
       console.error("Error logging out:", error);
       alert(error.message || "An error occurred while logging out.");
     }
   };
 
-  // Fetch case summary
-  const fetchCaseSummary = async (userId) => {
-    try {
-      const response = await fetch(`${backendURL}/cases/summary/${userId}`);
-      if (response.ok) {
-        const data = await response.json();
-        const totalCases = data.total_cases;
-        const notSolvedCases = data.not_solved_cases;
-        const completedCases = totalCases - notSolvedCases;
-        const successRate = totalCases > 0 ? ((completedCases / totalCases) * 100).toFixed(2) : 0;
+  // // Fetch case summary
+  // const fetchCaseSummary = async (userId) => {
+  //   try {
+  //     const response = await fetch(`${backendURL}/cases/summary/${userId}`);
+  //     if (response.ok) {
+  //       const data = await response.json();
+  //       const totalCases = data.total_cases;
+  //       const notSolvedCases = data.not_solved_cases;
+  //       const completedCases = totalCases - notSolvedCases;
+  //       const successRate = totalCases > 0 ? ((completedCases / totalCases) * 100).toFixed(2) : 0;
 
-        setCaseSummary({ total_cases: totalCases, not_solved_cases: notSolvedCases });
-        setSuccessRate(successRate);
-      } else {
-        throw new Error("Failed to fetch case summary");
-      }
-    } catch (error) {
-      console.error("Error fetching case summary:", error);
-    }
-  };
+  //       setCaseSummary({ total_cases: totalCases, not_solved_cases: notSolvedCases });
+  //       setSuccessRate(successRate);
+  //     } else {
+  //       throw new Error("Failed to fetch case summary");
+  //     }
+  //   } catch (error) {
+  //     console.error("Error fetching case summary:", error);
+  //   }
+  // };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -105,9 +104,9 @@ export default function Dashboard() {
               {user && (
                 <div className="flex items-center">
                   <div className="w-8 h-8 bg-amber-500 rounded-full flex items-center justify-center text-blue-950 font-bold mr-2">
-                    {user.name[0]} {/* Display the first letter of the user's name */}
+                    {user.charAt(0).toUpperCase()} 
                   </div>
-                  <span className="font-medium">{user.name}</span>
+                  <span className="font-medium">{user}</span>
                 </div>
               )}
 
@@ -127,7 +126,7 @@ export default function Dashboard() {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => setShowSubmissionForm(true)}
+            onClick={() => navigate("/user/case")}
             className="flex items-center bg-blue-900 hover:bg-blue-800 text-white py-2 px-4 rounded-md shadow-sm transition-colors"
           >
             <Plus className="mr-2 h-5 w-5" />
@@ -243,36 +242,7 @@ export default function Dashboard() {
         </div>
       </main>
 
-      {/* Case Submission Modal */}
-      <AnimatePresence>
-        {showSubmissionForm && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto"
-            >
-              <div className="sticky top-0 bg-blue-950 text-white px-6 py-4 flex justify-between items-center">
-                <h2 className="text-xl font-serif font-bold">New Case Submission</h2>
-                <button
-                  onClick={() => setShowSubmissionForm(false)}
-                  className="text-white hover:text-amber-300 transition-colors"
-                >
-                  &times;
-                </button>
-              </div>
-
-              <CaseSubmissionForm onClose={() => setShowSubmissionForm(false)} />
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      
     </div>
   )
 }
