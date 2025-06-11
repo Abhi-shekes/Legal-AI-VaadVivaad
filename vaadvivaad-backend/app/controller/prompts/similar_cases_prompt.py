@@ -5,6 +5,11 @@ Your task is to provide a JSON array containing exactly 3 **real** and **verifia
 
 For each case, include the following fields with accurate and concise information based on actual case law:
 
+**IMPORTANT**: 
+✅ Return only **ONE** item as an array with exactly one object.  
+❌ Do not include more than one case
+
+
 [
   {{
     "case_id_name": "Official case name or citation string (e.g., 'State vs Ram Kumar')",
