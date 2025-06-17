@@ -19,6 +19,7 @@ import {
   faScroll,
   faCrown,
   faHammer,
+  faSave,
 } from "@fortawesome/free-solid-svg-icons"
 
 // Enhanced styling with custom color variables and animations
@@ -307,7 +308,7 @@ const MessageCard = ({ data }) => {
             <p className="text-gray-600 mb-1">
               The legal proceedings have concluded after {data.total_rounds} rounds of arguments.
             </p>
-            <p className="text-sm text-gray-500">Submit a new case to initiate another legal debate session.</p>
+            <p className="text-sm text-gray-500">Click 'Save Debate to DB' to store the debate history or submit a new case.</p>
           </div>
         )
       case "status":
@@ -358,21 +359,23 @@ const MessageCard = ({ data }) => {
 
 // Main Component with enhanced design
 const Case = () => {
-  // State (unchanged)
+  // State
   const [incident, setIncident] = useState("")
   const [evidence, setEvidence] = useState("")
   const [messages, setMessages] = useState([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isConnected, setIsConnected] = useState(false)
   const [typingState, setTypingState] = useState({ isTyping: false, role: "" })
+  const [isDebateConcluded, setIsDebateConcluded] = useState(false)
+  const [debateData, setDebateData] = useState(null)
 
-  // Refs (unchanged)
+  // Refs
   const socket = useRef(null)
   const sessionId = useRef(crypto.randomUUID())
   const initialCaseDetails = useRef(null)
   const debateOutputRef = useRef(null)
 
-  // Effects (unchanged)
+  // Effects
   useEffect(() => {
     if (debateOutputRef.current) {
       debateOutputRef.current.scrollTop = debateOutputRef.current.scrollHeight
@@ -391,9 +394,53 @@ const Case = () => {
     setMessages((prev) => [...prev, { ...newMessage, timestamp: new Date().toLocaleTimeString() }])
   }
 
-  // Form submit handler (unchanged logic, same WebSocket functionality)
+  const handleSaveDebate = async () => {
+    if (!debateData) {
+      addMessage({ type: "error", message: "No debate data available to save." })
+      return
+    }
+
+    setIsSubmitting(true)
+    addMessage({ type: "status", message: "Saving debate to database...", icon: faSpinner, title: "Saving" })
+
+    try {
+      const response = await fetch("http://localhost:8000/api/user/save-debate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          session_id: sessionId.current,
+          debate_history: debateData.debate_history,
+          ipc_section: debateData.ipc_section,
+          similar_case: debateData.similar_case,
+        }),
+      })
+
+      if (!response.ok) {
+        const err = await response.json()
+        throw new Error(err.detail || "Failed to save debate to database.")
+      }
+
+      addMessage({ type: "status", message: "Debate saved successfully!", icon: faCheckCircle, title: "Saved" })
+      setIsDebateConcluded(false)
+      setDebateData(null)
+      setIncident("")
+      setEvidence("")
+      sessionId.current = crypto.randomUUID() // Generate new session ID for next case
+    } catch (error) {
+      addMessage({ type: "error", message: error.message })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // Form submit handler
   const handleFormSubmit = async (e) => {
     e.preventDefault()
+    if (isDebateConcluded) {
+      await handleSaveDebate()
+      return
+    }
+
     if (!incident || !evidence) {
       addMessage({ type: "error", message: "Please fill out both the incident description and evidence fields." })
       return
@@ -459,10 +506,29 @@ const Case = () => {
 
       socket.current.on("debate_concluded", (data) => {
         setTypingState({ isTyping: false, role: "" })
+        console.log("Debate History:", data)
+        setDebateData({
+          debate_history: data.debate_history,
+          ipc_section: data.ipc_section,
+          similar_case: data.similar_case,
+        })
+        setIsDebateConcluded(true)
         addMessage({ type: "debate_concluded", ...data })
         setIsSubmitting(false)
         socket.current.disconnect()
       })
+
+       socket.current.on("debate_failed", (data) => {
+        setTypingState({ isTyping: false, role: "" })
+        setIsDebateConcluded(true)
+        addMessage({ type: "debate_failed", ...data })
+        setIsSubmitting(false)
+        socket.current.disconnect()
+      })
+
+
+
+
     } catch (error) {
       addMessage({ type: "error", message: error.message })
       setIsSubmitting(false)
@@ -567,6 +633,7 @@ const Case = () => {
                       rows="6"
                       placeholder="Provide a detailed description of the incident, including all relevant circumstances, parties involved, and sequence of events..."
                       required
+                      disabled={isDebateConcluded}
                     />
                   </div>
 
@@ -583,6 +650,7 @@ const Case = () => {
                       rows="6"
                       placeholder="List all relevant evidence including documents, witness statements, physical evidence, expert opinions, and any supporting materials..."
                       required
+                      disabled={isDebateConcluded}
                     />
                   </div>
 
@@ -592,17 +660,19 @@ const Case = () => {
                     className="w-full legal-gradient text-white px-6 py-4 rounded-xl hover:shadow-lg transition-all duration-300 ease-in-out flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 active:scale-100 font-semibold text-lg"
                   >
                     <FontAwesomeIcon
-                      icon={isSubmitting ? faSpinner : faPlay}
+                      icon={isSubmitting ? faSpinner : isDebateConcluded ? faSave : faPlay}
                       className={`mr-3 text-xl ${isSubmitting && "animate-spin"}`}
                     />
-                    {isSubmitting ? "Debate in Progress..." : "Initiate Legal Debate"}
+                    {isSubmitting
+                      ? "Processing..."
+                      : isDebateConcluded
+                      ? "Initiate Legal Debate" // Temp waork Done
+                      : "Initiate Legal Debate"}
                   </button>
                 </form>
               </div>
             </div>
           </main>
-
-          
         </div>
       </div>
     </>
