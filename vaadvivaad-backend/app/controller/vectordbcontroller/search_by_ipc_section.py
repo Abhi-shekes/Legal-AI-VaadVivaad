@@ -23,41 +23,30 @@ def search_by_ipc_section(section: str) -> List[Dict[str, Any]]:
     Handles case sensitivity and whitespace
     """
     try:
+        # Normalize the section number by removing spaces
+        normalized_section = section.replace(" ", "")
        
-        # First try exact match in metadata
+        # Perform exact match in metadata
         results = vector_store.similarity_search(
-            query=section,
+            query=f"IPC Section {normalized_section}",
             k=1,
-            filter={"section_number": section.upper()}
+            filter={"section_number": {"$eq": normalized_section}}
         )
-        
-       
-        return format_ipc_results(results)
-        
-    except Exception as e:
 
+        if not results:
+            print("No results found for section:", normalized_section)
+            return []
+        
+        # print("Search results:", results)  # Debugging print
+        return format_ipc_results(results)  # Pass the entire list
+    
+    except Exception as e:
         error_message = str(e)
         if "COLLECTION_NOT_EXIST" in error_message or "collection name: case_laws" in error_message:
             print("Collection does not exist, returning empty case list.")
         else:
             print(f"Error in vector search: {error_message}")
         return []  # Unified empty result for both collection-not-found and no match
-
-def search_ipc_section_query(query: str, limit: int = 1) -> List[Dict[str, Any]]:
-    """
-    Semantic search across IPC sections with comprehensive legal data
-    """
-    try:
-        results = vector_store.similarity_search(
-            query=query,
-            k=limit
-        )
-        return format_ipc_results(results)
-              
-    except Exception as e:
-        print(f"Error performing semantic search: {str(e)}")
-        return []
-
 
 
 def format_ipc_results(results: List[Document]) -> List[Dict[str, Any]]:
@@ -107,7 +96,7 @@ def format_ipc_results(results: List[Document]) -> List[Dict[str, Any]]:
             # Basic Info
             'section_number': metadata.get('section_number'),
             'code': full_data.get('code'),
-            'description': full_data.get('description'),
+            'description': full_data.get('description') or "No description available",  # Default description
             'current_status': metadata.get('current_status'),
             
             # Classification

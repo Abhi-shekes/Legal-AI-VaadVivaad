@@ -2,7 +2,6 @@ from fastapi import APIRouter, HTTPException, Response, Request
 from pydantic import BaseModel
 from app.schemas.user import UserCreate, LoginUser
 from app.db.mongodb import db
-from app.db.mongodb import db
 from app.auth.hashing import hash_password, verify_password
 from app.utils.create_access_token import create_access_token
 

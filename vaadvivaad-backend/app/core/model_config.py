@@ -17,26 +17,36 @@ def GENERATE_RESPONSE_FROM_GEMINI(prompt):
         response = model.generate_content(prompt)
         raw_text = response.text.strip()
     except Exception as e:
-        print("Error generating content from Gemini:", e)
+        print(f"Error generating content from Gemini: {e}")
         return None
 
+    if not raw_text:
+        print("Error: Empty response from Gemini")
+        return None
+
+    # Strip code block markers if present
+    cleaned_text = raw_text
     if raw_text.startswith("```") and raw_text.endswith("```"):
         lines = raw_text.splitlines()
-        if lines[0].startswith("```"):
+        # Remove the first line if it starts with ```
+        if lines and lines[0].startswith("```"):
             lines = lines[1:]
-        if lines[-1].strip() == "```":
+        # Remove the last line if it is ```
+        if lines and lines[-1].strip() == "```":
             lines = lines[:-1]
         cleaned_text = "\n".join(lines).strip()
-    else:
-        cleaned_text = raw_text
-
-    try:
-        return json.loads(cleaned_text)
-    except json.JSONDecodeError:
-        print("Failed to parse JSON from Gemini response:")
-        print(cleaned_text)
+    
+    if not cleaned_text:
+        print("Error: Cleaned text is empty after processing")
         return None
 
+    try:
+        parsed_json = json.loads(cleaned_text)
+        return parsed_json
+    except json.JSONDecodeError as e:
+        print(f"Failed to parse JSON from Gemini response: {e}")
+        print(f"Problematic text: {cleaned_text}")
+        return None
 
 
 

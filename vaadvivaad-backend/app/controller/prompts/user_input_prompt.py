@@ -18,10 +18,12 @@ Given the following user input prompt, do the following:
 }}
 
 4. If it is related, respond with the following JSON object containing the refined prompt:
+5. Give a single word describing the case like rape , kidnapping , murder based on the refined prompt generated
 
 {{
   "status": "legal",
-  "refined_prompt": "<the professionally rewritten legal prompt string>"
+  "refined_prompt": "<the professionally rewritten legal prompt string>",
+  "crime_type" : "<define in a single word>"
 }}
 
 User Prompt:

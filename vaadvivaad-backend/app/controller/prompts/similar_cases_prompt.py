@@ -13,7 +13,7 @@ For each case, include the following fields with accurate and concise informatio
 [
   {{
     "case_id_name": "Official case name or citation string (e.g., 'State vs Ram Kumar')",
-    "ipc_sections": ["List of IPC sections relevant to the case, including '{ipc_section}'"],
+    "ipc_sections": ["Provide only the numeric IPC section codes relevant to the case including '{ipc_section}'. Output must only include plain numbers like '376', '420', not any text like 'Section 376' or 'Section 420 - Cheating'."]
     "court": "Full name of the court where the case was adjudicated",
     "date_of_judgment": "Date of judgment in ISO format YYYY-MM-DD (use empty string if unknown)",
     "case_summary": "Brief factual summary describing the case background and legal context",

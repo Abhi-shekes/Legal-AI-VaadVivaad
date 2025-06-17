@@ -8,8 +8,7 @@ import asyncio
 # Import logic functions from controller
 from app.controller.vectordbcontroller.find_similar_case import find_similar_cases
 from app.controller.vectordbcontroller.search_by_ipc_section import search_by_ipc_section
-from app.controller.vectordbcontroller.search_ipc_section_query import search_ipc_section_query
-from app.controller.vectordbcontroller.search_ipc_evidence import search_by_ipc_section_direct
+from app.controller.vectordbcontroller.search_ipc_evidence import search_evidence_by_ipc_section
 
 router = APIRouter()
 
@@ -37,7 +36,7 @@ class IPCSectionResult(BaseModel):
     # Basic Info
     section_number: str
     code: str
-    description: str
+    description: Optional[str] = None  # Allow None for description
     current_status: str
     
     # Classification
@@ -175,27 +174,26 @@ async def search_case_laws(request: SimilarCaseRequest):
 
 
 @router.post("/search-ipc-sections", response_model=List[IPCSectionResult])
-def search_ipc_sections(section: Optional[str] = Query(None), query: Optional[str] = Query(None)):
+async def search_ipc_sections(section: str = Query(...)):
     try:
         if section:
             results = search_by_ipc_section(section)
-        elif query:
-            results = search_ipc_section_query(query)
         else:
-            raise HTTPException(status_code=400, detail="Either 'section' or 'query' must be provided")
-        
+            raise HTTPException(status_code=400, detail="Section must be provided")
         return results if results else []
-        
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error searching IPC sections: {str(e)}")
-    
+
 
 @router.post("/search-ipc-evidence", response_model=List[EvidenceResult])
 async def search_ipc_evidence(ipc_section: str):
     try:
-        results = search_by_ipc_section_direct(ipc_section)
-        if not results:
-            raise HTTPException(status_code=404, detail=f"No evidence types found for IPC Section {ipc_section}")
-        return results
+        if ipc_section:
+
+            results = search_evidence_by_ipc_section(ipc_section)
+        else:
+            raise HTTPException(status_code=400, detail="Section must be provided")
+        
+        return results if results else []
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error searching evidence: {str(e)}")

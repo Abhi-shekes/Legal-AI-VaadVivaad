@@ -10,7 +10,7 @@ from typing import Dict
 
 # Initialize vector store
 vector_store = AstraDBVectorStore(
-    collection_name="ipc_sections",
+    collection_name="evidence_type",
     api_endpoint=settings.ASTRA_DB_API_ENDPOINT,
     token=settings.ASTRA_DB_APPLICATION_TOKEN,
     namespace=settings.ASTRA_DB_KEYSPACE,
@@ -44,7 +44,7 @@ def saveIPCEvidence(evidence_data: Dict):
     try:
 
         document = prepare_evidence_document(evidence_data)
-        result = vector_store.add_documents(documents=[document])
+        vector_store.add_documents(documents=[document])
         print(f"Stored evidence for {evidence_data.get('crime_type', 'unknown')} (IPC: {evidence_data.get('ipc_section', '')})")
     except Exception as e:
         print(f"Error storing evidence: {str(e)}")

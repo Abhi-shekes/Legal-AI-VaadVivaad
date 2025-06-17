@@ -4,6 +4,7 @@ from astrapy.info import VectorServiceOptions
 from app.core.config import settings
 from typing import List, Dict, Any
 
+
 vector_store = AstraDBVectorStore(
     collection_name="case_laws",
     api_endpoint=settings.ASTRA_DB_API_ENDPOINT,
@@ -14,6 +15,7 @@ vector_store = AstraDBVectorStore(
         model_name="NV-Embed-QA",
     ),
 )
+
 
 
 def find_similar_cases(incident_description: str):
@@ -32,7 +34,7 @@ def find_similar_cases(incident_description: str):
 
         similar_cases = []
         for doc, score in results_with_scores:
-            if score >= 0.60:
+            if score >= 0.70:
                 formatted_case = format_case_details(doc.metadata)
                 similar_cases.append({"case": formatted_case, "similarity_score": score})
 
@@ -45,7 +47,7 @@ def find_similar_cases(incident_description: str):
         else:
             print(f"Error in vector search: {error_message}")
         return []  # Unified empty result for both collection-not-found and no match
-
+    
 
 def format_case_details(case_data: dict) -> dict:
     return {
@@ -64,50 +66,4 @@ def format_case_details(case_data: dict) -> dict:
         "severity": case_data.get("severity", "N/A"),
     }
 
-async def main():
-    incident = (
-        "dowry death"
-    )
-
-    relaxed_filters = {
-        "court": {"$in": ["Supreme Court of India", "High Court", "District Court", "N/A"]},
-
-    }
-
-
-
-    similar_cases = find_similar_cases(
-        incident_description=incident,
-        k=1,
-        min_score=0.60, # Lowered min_score to catch potentially less perfect matches
-        metadata_filters=relaxed_filters # Using relaxed filters for broader results
-    )
-
-    if similar_cases:
-        case = similar_cases[0]
-        details = case["case"]
-
-        result = {
-            "status" : "success",
-            "case_name": details["case_name"],
-            "similarity_score": round(case["similarity_score"], 2),
-            "details": {
-                "court": details["court"],
-                "date": details["date"],
-                "ipc_sections": details["ipc_sections"],
-                "crime_type": details["crime_type"],
-                "severity": details["severity"],
-                "verdict": details["verdict"],
-                "summary": details["summary"],
-                "legal_issues": details["legal_issues"],
-                "defense_raised": details["defense_raised"],
-                "evidence_discussed": details["evidence_discussed"],
-                "judgment_text": details["judgment_text"],
-                "precedents": details["precedents"],
-            }
-        }
-
-        print(result)
-    else:
-        print({"status": "fail" , "message" : "No Similar Case Found in DB"})
 
