@@ -30,7 +30,7 @@ const Header = () => {
             <img 
               src={logo}  // <--- If it's inside public/ folder
               alt="NyayaVada Logo"
-              className="h-20 w-44"  // adjust height as needed
+              className="h-28"  // adjust height as needed
             />
           </Link>
         </div>
