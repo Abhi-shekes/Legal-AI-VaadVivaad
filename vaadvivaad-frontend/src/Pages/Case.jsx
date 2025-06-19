@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { io } from "socket.io-client"
+import backendURL from "../config/config"; 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import {
   faBalanceScale,
@@ -474,7 +475,7 @@ const Case = () => {
 
       addMessage({ type: "status", message: "Connecting to debate server...", icon: faLink, title: "Connecting" })
 
-      socket.current = io("ws://localhost:8000", { transports: ["websocket"] })
+      socket.current = io(backendURL, { transports: ["websocket"] })
 
       socket.current.on("connect", () => {
         setIsConnected(true)
