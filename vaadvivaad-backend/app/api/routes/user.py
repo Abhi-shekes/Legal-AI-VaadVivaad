@@ -30,8 +30,7 @@ from app.utils.is_logged_in import is_logged_in
 from app.schemas.SaveDebateRequest import SaveDebateRequest
 
 # --- Import the central 'sio' instance from main.py ---
-from app.main import sio
-
+from app.socket_instance import sio 
 router = APIRouter()
 
 # --- A temporary store for case data received via HTTP ---

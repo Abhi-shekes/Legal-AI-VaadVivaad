@@ -1,38 +1,47 @@
-# main.py (Corrected)
+# app/main.py (FINAL CORRECTED VERSION)
 
+# --- Standard Library and 3rd-Party Imports ---
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import socketio
 
-# 1. Define the SIO server instance centrally.
-sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins='*')
+# --- Local Application Imports ---
 
+# 1. Import the shared instances from our new central file.
+# This solves the circular import problem.
+from app.socket_instance import sio, origins
+
+# 2. Import all your route modules.
 from app.api.routes import auth, vectordb, user, gemini
 
-# 2. Create the main FastAPI app and the combined ASGI app.
+
+# 3. Create the main FastAPI app instance.
+# We will configure this object fully before anything else.
 app = FastAPI(title="FastAPI Mongo Auth")
-sio_app = socketio.ASGIApp(sio, other_asgi_app=app) # The combined app to run
 
-# +++ THE FIX IS HERE +++
-# Define the list of allowed origins.
-# Don't use a wildcard "*" when allow_credentials=True.
-origins = [
-    "http://localhost:5173",  # Your Vite/React frontend
-    "http://localhost:3000",  # Another common port for React
 
-]
-
+# 4. Add all middleware to the app instance.
+# This MUST be done before creating the final combined app. This step is
+# crucial for allowing CORS preflight requests (like your login) to work.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,      # Use the specific list of origins
-    allow_credentials=True,     # This can now be True
-    allow_methods=["*"],        # Allow all methods
-    allow_headers=["*"],        # Allow all headers
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
-# 4. Include all your HTTP routers as normal.
+# 5. Include all your HTTP routers.
+# This attaches all your API endpoints (e.g., /api/auth/login) to the app.
 app.include_router(auth.router, prefix="/api/auth", tags=["Auth"])
 app.include_router(vectordb.router, prefix="/api/vectordb", tags=["VectorDB"])
 app.include_router(gemini.router, prefix="/api/gemini", tags=["Gemini Generation"])
 app.include_router(user.router, prefix="/api/user", tags=["User API"])
+
+
+# 6. Create the final combined ASGI app LAST.
+# This step takes the fully configured 'app' (with middleware and routes)
+# and wraps it with the Socket.IO server. This is the object that Uvicorn
+# will run.
+sio_app = socketio.ASGIApp(sio, other_asgi_app=app)
