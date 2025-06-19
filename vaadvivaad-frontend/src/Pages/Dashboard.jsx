@@ -31,11 +31,11 @@ export default function Dashboard() {
   // }, [])
 
   const navigate = useNavigate();
-
+  const apiUrl = import.meta.env.VITE_API_URL;
   const handleLogout = async () => {
     try {
 
-      const resp = await axios.post("http://localhost:8000/api/auth/logout", {}, {
+      const resp = await axios.post(`${apiUrl}/api/auth/logout`, {}, {
           withCredentials: true  
       });
 

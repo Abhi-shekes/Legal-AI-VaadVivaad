@@ -394,6 +394,8 @@ const Case = () => {
     setMessages((prev) => [...prev, { ...newMessage, timestamp: new Date().toLocaleTimeString() }])
   }
 
+  const apiUrl = import.meta.env.VITE_API_URL;
+
   const handleSaveDebate = async () => {
     if (!debateData) {
       addMessage({ type: "error", message: "No debate data available to save." })
@@ -404,7 +406,7 @@ const Case = () => {
     addMessage({ type: "status", message: "Saving debate to database...", icon: faSpinner, title: "Saving" })
 
     try {
-      const response = await fetch("http://localhost:8000/api/user/save-debate", {
+      const response = await fetch(`${apiUrl}/api/user/save-debate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -455,7 +457,7 @@ const Case = () => {
     addMessage({ type: "status", message: "Submitting case details...", icon: faSpinner, title: "Initializing" })
 
     try {
-      const response = await fetch("http://localhost:8000/api/user/start-case", {
+      const response = await fetch(`${apiUrl}/api/user/start-case`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
