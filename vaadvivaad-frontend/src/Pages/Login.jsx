@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import authStore from "../store/authStore";
 import themeStore from "../store/themeStore";
 import { motion } from "framer-motion";
-import backendURL from "src/config"; 
+import backendURL from "../config"; 
 
 const Login = () => {
   const [passwordVisible, setPasswordVisible] = useState(false);

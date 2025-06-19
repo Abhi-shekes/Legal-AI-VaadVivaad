@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import { io } from "socket.io-client"
-import backendURL from "src/config"; 
+import backendURL from "../config"; 
+
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import {
   faBalanceScale,
@@ -475,13 +476,8 @@ const Case = () => {
 
       addMessage({ type: "status", message: "Connecting to debate server...", icon: faLink, title: "Connecting" })
 
-     if (backendURL) {
-    // Only attempt to connect if the URL is valid
-    socket.current = io(backendURL, { transports: ["websocket"] });
-} else {
-    // If the URL is missing, crash loudly so you know immediately
-    console.error("FATAL: VITE_API_URL is not defined! Check your .env file.");
-}
+      socket.current = io(backendURL, { transports: ["websocket"] })
+
       socket.current.on("connect", () => {
         setIsConnected(true)
         setTypingState({ isTyping: false, role: "" })
