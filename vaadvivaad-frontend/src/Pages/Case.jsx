@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { io } from "socket.io-client"
-import backendURL from "../config/config"; 
+import backendURL from "../config"; 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import {
   faBalanceScale,
