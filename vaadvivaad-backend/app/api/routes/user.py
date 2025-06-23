@@ -91,6 +91,8 @@ async def run_debate_flow(session_id: str):
             if session_id in case_data_store and 'sid' in case_data_store[session_id]:
                 await sio.disconnect(case_data_store[session_id]['sid'])
             return
+        
+        print(processed_prompt)
             
 
         # Step 2: Find similar cases
