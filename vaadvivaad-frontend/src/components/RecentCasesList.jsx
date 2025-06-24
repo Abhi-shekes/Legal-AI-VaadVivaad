@@ -17,7 +17,7 @@ export default function RecentCasesList() {
         
 
        
-        const response = await axios.get(`${backendURL}/user_case/${loggedInUser.user_id}`, {
+        const response = await axios.get(`${backendURL}user_case/${loggedInUser.user_id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
