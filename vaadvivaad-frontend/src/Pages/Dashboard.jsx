@@ -35,7 +35,7 @@ export default function Dashboard() {
   const handleLogout = async () => {
     try {
 
-      const resp = await axios.post(`${apiUrl}/api/auth/logout`, {}, {
+      const resp = await axios.post(`${apiUrl}/auth/logout`, {}, {
           withCredentials: true  
       });
 

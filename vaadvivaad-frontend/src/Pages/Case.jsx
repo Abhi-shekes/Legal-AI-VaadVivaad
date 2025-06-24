@@ -408,7 +408,7 @@ const Case = () => {
     addMessage({ type: "status", message: "Saving debate to database...", icon: faSpinner, title: "Saving" })
 
     try {
-      const response = await fetch(`${apiUrl}/api/user/save-debate`, {
+      const response = await fetch(`${apiUrl}/user/save-debate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -459,7 +459,7 @@ const Case = () => {
     addMessage({ type: "status", message: "Submitting case details...", icon: faSpinner, title: "Initializing" })
 
     try {
-      const response = await fetch(`${apiUrl}/api/user/start-case`, {
+      const response = await fetch(`${apiUrl}/user/start-case`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
