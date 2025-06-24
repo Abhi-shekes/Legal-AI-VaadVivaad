@@ -25,8 +25,8 @@ const Footer = () => {
               icon={faBalanceScale} 
               className="mr-3 text-[#d4af37]" 
             />
-            <span className="text-[#0a2463]">Nyaya</span>
-            <span className="text-[#d4af37]">Vada</span>
+            <span className="text-[#0a2463]">Vaad</span>
+            <span className="text-[#d4af37]">Vivaad</span>
           </h1>
           <p
             className={`mt-2 transition-colors ${
@@ -117,7 +117,7 @@ const Footer = () => {
           theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
         }`}
       >
-        © {new Date().getFullYear()} NyayaVada. All rights reserved.
+        © {new Date().getFullYear()} Vaad Vivaad. All rights reserved.
       </div>
     </footer>
   );

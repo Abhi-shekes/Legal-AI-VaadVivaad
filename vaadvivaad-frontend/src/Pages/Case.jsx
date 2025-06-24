@@ -552,11 +552,10 @@ const Case = () => {
               </div>
               <div>
                 <h1 className="text-5xl font-bold text-gray-800 mb-2">
-                  <span style={{ color: "var(--legal-blue)" }}>Legal</span>
                   <span style={{ color: "var(--legal-gold)" }} className="ml-2">
-                    Debate
+                    Vaad
                   </span>
-                  <span className="text-gray-600 ml-2">System</span>
+                  <span className="text-gray-600 ml-2">Vivaad</span>
                 </h1>
                 <div className="h-1 w-32 gold-gradient rounded-full mx-auto"></div>
               </div>

@@ -70,7 +70,7 @@ const Landing = () => {
             transition={{ duration: 0.8, delay: 0.2 }}
           >
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
-              <span className="text-[#0a2463]">Nyaya</span> <span className="text-[#d4af37]">Vada</span>
+              <span className="text-[#0a2463]">Vaad</span> <span className="text-[#d4af37]">Vivaad</span>
             </h1>
             <p className={`text-lg md:text-xl mb-8 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
               Revolutionize your legal practice with AI-powered case analysis, research assistance, and document automation.
