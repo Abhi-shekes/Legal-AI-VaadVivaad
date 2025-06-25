@@ -17,7 +17,7 @@ from app.api.routes import auth, vectordb, user, gemini
 
 # 3. Create the main FastAPI app instance.
 # We will configure this object fully before anything else.
-app = FastAPI(title="FastAPI Mongo Auth")
+app = FastAPI(title="VaadVivaadBakend")
 
 
 # 4. Add all middleware to the app instance.
@@ -34,11 +34,11 @@ app.add_middleware(
 
 # 5. Include all your HTTP routers.
 # This attaches all your API endpoints (e.g., /api/auth/login) to the app.
-app.include_router(auth.router, prefix="/api/auth", tags=["Auth"])
-app.include_router(vectordb.router, prefix="/api/vectordb", tags=["VectorDB"])
-app.include_router(gemini.router, prefix="/api/gemini", tags=["Gemini Generation"])
-app.include_router(user.router, prefix="/api/user", tags=["User API"])
 
+app.include_router(auth.router, prefix="/auth", tags=["Auth"])
+app.include_router(vectordb.router, prefix="/vectordb", tags=["VectorDB"])
+app.include_router(gemini.router, prefix="/gemini", tags=["Gemini Generation"])
+app.include_router(user.router, prefix="/user", tags=["User API"])
 
 # 6. Create the final combined ASGI app LAST.
 # This step takes the fully configured 'app' (with middleware and routes)
