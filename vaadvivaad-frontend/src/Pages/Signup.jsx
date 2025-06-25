@@ -6,6 +6,7 @@ import themeStore from "../store/themeStore";
 import { motion } from "framer-motion";
 import backendURL from "../config"; 
 import { useNavigate } from "react-router";
+import { Link } from "react-router-dom";
 
 
 const Signup = () => {
@@ -300,18 +301,18 @@ const Signup = () => {
           </form>
 
           <div className="mt-6 text-center">
-            <p className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
-              Already have an account?{" "}
-              <a
-                href="/login"
-                className={`font-medium hover:underline ${
-                  theme === "dark" ? "text-[#d4af37]" : "text-[#0a2463]"
-                }`}
-              >
-                Sign in
-              </a>
-            </p>
-          </div>
+  <p className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
+    Already have an account?{" "}
+    <Link
+      to="/login"
+      className={`font-medium hover:underline ${
+        theme === "dark" ? "text-[#d4af37]" : "text-[#0a2463]"
+      }`}
+    >
+      Sign in
+    </Link>
+  </p>
+</div>
         </motion.div>
       </motion.div>
 

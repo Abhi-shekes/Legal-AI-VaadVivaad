@@ -69,9 +69,12 @@ const Landing = () => {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
           >
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
-              <span className="text-[#0a2463]">Vaad</span> <span className="text-[#d4af37]">Vivaad</span>
-            </h1>
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-2 leading-tight text-center lg:text-left">
+  <span className="text-[#0a2463]">Vaad</span> <span className="text-[#d4af37]">Vivaad</span>
+</h1>
+<p className="text-xl md:text-2xl font-medium mb-6 text-[#d4af37] text-center lg:text-left">
+  <span className="font-semibold">वाद विवाद</span>
+</p>
             <p className={`text-lg md:text-xl mb-8 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
               Revolutionize your legal practice with AI-powered case analysis, research assistance, and document automation.
             </p>
@@ -312,8 +315,8 @@ const Landing = () => {
               <div className="flex items-center mb-4">
                 <div className="w-12 h-12 rounded-full bg-gray-300 mr-4"></div>
                 <div>
-                  <h4 className="font-bold">Sarah Johnson</h4>
-                  <p className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>Partner, Johnson & Associates</p>
+                  <h4 className="font-bold">Dr. Aarti Karande</h4>
+                  <p className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>Mentor</p>
                 </div>
               </div>
               <p className={theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}>
@@ -332,7 +335,7 @@ const Landing = () => {
               <div className="flex items-center mb-4">
                 <div className="w-12 h-12 rounded-full bg-gray-300 mr-4"></div>
                 <div>
-                  <h4 className="font-bold">Michael Rodriguez</h4>
+                  <h4 className="font-bold">Abhishek Tiwari</h4>
                   <p className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>Senior Attorney, Legal Defenders</p>
                 </div>
               </div>
@@ -352,8 +355,8 @@ const Landing = () => {
               <div className="flex items-center mb-4">
                 <div className="w-12 h-12 rounded-full bg-gray-300 mr-4"></div>
                 <div>
-                  <h4 className="font-bold">Jennifer Chen</h4>
-                  <p className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>Managing Partner, Chen Law Group</p>
+                  <h4 className="font-bold">Deepak Yadav</h4>
+                  <p className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>High Court Judge</p>
                 </div>
               </div>
               <p className={theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}>
