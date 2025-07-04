@@ -35,7 +35,7 @@ const Login = () => {
 
     try {
       const resp = await axios.post(
-        `${backendURL}auth/login`,
+        `${backendURL}/auth/login`,
         { email, password },
         { withCredentials: true }
       );

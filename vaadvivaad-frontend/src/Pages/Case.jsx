@@ -373,7 +373,7 @@ const Case = () => {
 
   // Refs
   const socket = useRef(null)
-  const sessionId = useRef(crypto.randomUUID())
+  const sessionId = useRef(Math.floor(1000000000 + Math.random() * 9000000000).toString())
   const initialCaseDetails = useRef(null)
   const debateOutputRef = useRef(null)
 
@@ -429,7 +429,7 @@ const Case = () => {
       setDebateData(null)
       setIncident("")
       setEvidence("")
-      sessionId.current = crypto.randomUUID() // Generate new session ID for next case
+      sessionId.current = Math.floor(1000000000 + Math.random() * 9000000000).toString();
     } catch (error) {
       addMessage({ type: "error", message: error.message })
     } finally {
