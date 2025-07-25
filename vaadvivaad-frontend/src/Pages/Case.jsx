@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react"
 import { io } from "socket.io-client"
-import backendURL from "../config"; 
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import {
@@ -396,8 +395,6 @@ const Case = () => {
     setMessages((prev) => [...prev, { ...newMessage, timestamp: new Date().toLocaleTimeString() }])
   }
 
-  const apiUrl = import.meta.env.VITE_API_URL;
-
   const handleSaveDebate = async () => {
     if (!debateData) {
       addMessage({ type: "error", message: "No debate data available to save." })
@@ -408,7 +405,7 @@ const Case = () => {
     addMessage({ type: "status", message: "Saving debate to database...", icon: faSpinner, title: "Saving" })
 
     try {
-      const response = await fetch(`${apiUrl}/user/save-debate`, {
+      const response = await fetch(`http://127.0.0.1:8000/user/save-debate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -459,7 +456,7 @@ const Case = () => {
     addMessage({ type: "status", message: "Submitting case details...", icon: faSpinner, title: "Initializing" })
 
     try {
-      const response = await fetch(`${apiUrl}/user/start-case`, {
+      const response = await fetch(`http://nyayapravah.info/vaadvivaad/api/user/start-case`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -476,7 +473,7 @@ const Case = () => {
 
       addMessage({ type: "status", message: "Connecting to debate server...", icon: faLink, title: "Connecting" })
 
-      socket.current = io(backendURL, { transports: ["websocket"] })
+      socket.current = io("http://nyayapravah.info", { transports: ["websocket"] })
 
       socket.current.on("connect", () => {
         setIsConnected(true)
