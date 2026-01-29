@@ -33,7 +33,7 @@ async def login(user: LoginUser, response: Response , response_model=SuccessMess
     if not db_user or not verify_password(user.password, db_user["hashed_password"]):
         return {"status": "fail", "message": "Invalid Credentials"}
     
-    token = create_access_token({"email": user.email , "role": "user"})
+    token = create_access_token({"email": user.email , "role": "user", "id": str(db_user["_id"])})
     
     # Set token in HTTP-only cookie
     response.set_cookie(

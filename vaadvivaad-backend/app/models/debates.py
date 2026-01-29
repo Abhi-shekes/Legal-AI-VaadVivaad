@@ -20,8 +20,7 @@ class DebateHistoryEntry(BaseModel):
     round: int = Field(..., ge=0, description="Debate round number, 0-based")
 
 class DebateInDB(BaseModel):
-    debate_id: UUID = Field(..., description="Unique UUID for the debate")
-    user_id: UUID = Field(..., description="Reference to the user's UUID in the users collection")
+    user_id: str = Field(..., description="Reference to the user's UUID in the users collection")
     ipc_section: Optional[str] = Field(None, description="IPC section code, e.g., '376'")
     similar_case: Optional[SimilarCase] = Field(None, description="Details of a similar case")
     debate_history: List[DebateHistoryEntry] = Field(..., description="List of debate arguments")

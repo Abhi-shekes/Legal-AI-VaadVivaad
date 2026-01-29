@@ -11,6 +11,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from uuid import uuid4, UUID
 from pymongo import MongoClient
 from datetime import datetime
+from bson import ObjectId
 
 
 
@@ -85,6 +86,17 @@ async def run_debate_flow(session_id: str):
 
         # Step 1: Generate prompt
         processed_prompt = generate_user_prompt_properly(incident_description)
+        
+        print("\n--- Processed Prompt ---" , processed_prompt)
+        
+        if not processed_prompt:
+             print("❌ Failed to generate prompt from Gemini (Quota or other error).")
+             await send_to_ui(session_id, "error", {"message": "Server is busy or quota exceeded. Please try again later."})
+             await send_to_ui(session_id, "debate_failed")
+             if session_id in case_data_store and 'sid' in case_data_store[session_id]:
+                 await sio.disconnect(case_data_store[session_id]['sid'])
+             return
+
         if processed_prompt.get("status") == "non-legal":
             await send_to_ui(session_id, "error", {"message": processed_prompt["message"]})
             await send_to_ui(session_id, "debate_failed")
@@ -180,7 +192,7 @@ async def run_debate_flow(session_id: str):
 
         # Step 5: Debate loop (1 round as per new code, but can be adjusted)
         current_argument = first_response[0]
-        for round_num in range(1, 5):
+        for round_num in range(1, 2):
             await send_to_ui(session_id, "typing", {"role": "opposing"})
             await sio.sleep(2)
 
@@ -275,24 +287,22 @@ async def start_case_flow(case_request: CaseRequest):
 
 
 
-@router.post("/save-debate", dependencies=[Depends(is_logged_in)])
-async def save_debate(request: Request, payload: SaveDebateRequest):
+@router.post("/save-debate")
+async def save_debate(payload: SaveDebateRequest, user: dict = Depends(is_logged_in)):
     try:
-        user = request.state.user  # Access the injected user
+       
 
         email = user.get("email")
         if not email:
             raise ValueError("User email not found in token")
 
-        # Verify user exists
-        if not await db.users.find_one({"email": email}):
-            raise ValueError("User not found")
+        user_id = user.get("id")
+        
 
         debate_doc = {
-            "debate_id": str(uuid4()),
-            "user_id": str(user.get("_id")),  # Store _id as string
+            "user_id": user_id,
             "ipc_section": payload.ipc_section,
-            "similar_case": payload.similar_case.dict(),
+            "similar_case": payload.similar_case,
             "debate_history": [entry.dict() for entry in payload.debate_history],
             "status": "completed",
             "created_at": datetime.utcnow().isoformat(),
@@ -308,3 +318,129 @@ async def save_debate(request: Request, payload: SaveDebateRequest):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to save debate: {str(e)}")
+    
+
+
+@router.get("/debate")
+async def get_debate(user: dict = Depends(is_logged_in)):
+    try:
+        email = user.get("email")
+        if not email:
+            raise ValueError("User email not found in token")
+
+        # Ensure user exists and get ID if missing from token
+        db_user = await db.users.find_one({"email": email})
+        if not db_user:
+            raise ValueError("User not found")
+
+        user_id = user.get("id")
+        if not user_id:
+            user_id = str(db_user["_id"])
+
+        # Fetch debates for the user
+        debates_cursor = db.debates.find({"user_id": user_id})
+        debates = await debates_cursor.to_list(length=None)
+
+        result = []
+        for debate in debates:
+            # Safely extract case name
+            title = "Unknown Case"
+            similar_case = debate.get("similar_case")
+            if similar_case and isinstance(similar_case, dict):
+                case_info = similar_case.get("case")
+                if case_info and isinstance(case_info, dict):
+                    title = case_info.get("case_name", "Unknown Case")
+            
+            result.append({
+                "id": str(debate["_id"]),
+                "title": title,
+                "status": debate.get("status", "unknown"),
+                "created_at": debate.get("created_at")
+            })
+
+        return {
+            "status": "success",
+            "data": result
+        }
+
+    except Exception as e:
+        print(f"Error fetching debates: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to fetch debates: {str(e)}")
+
+
+@router.get("/debate/{debate_id}")
+async def get_debate_by_id(debate_id: str, user: dict = Depends(is_logged_in)):
+    try:
+        if not ObjectId.is_valid(debate_id):
+             raise HTTPException(status_code=400, detail="Invalid Debate ID format")
+
+        email = user.get("email")
+        # Ensure user_id is available
+        user_id = user.get("id")
+        if not user_id:
+             db_user = await db.users.find_one({"email": email})
+             if db_user:
+                 user_id = str(db_user["_id"])
+             else:
+                 raise HTTPException(status_code=401, detail="User validation failed")
+
+        debate = await db.debates.find_one({"_id": ObjectId(debate_id), "user_id": user_id})
+        
+        if not debate:
+            raise HTTPException(status_code=404, detail="Debate not found or access denied")
+        
+        # Convert ObjectId to str
+        debate["_id"] = str(debate["_id"])
+        
+        return {
+            "status": "success",
+            "data": debate
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error fetching debate {debate_id}: {e}")
+        # traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to fetch debate: {str(e)}")
+
+
+@router.get("/debate/:id")
+async def get_debate(user: dict = Depends(is_logged_in)):
+    try:
+        email = user.get("email")
+        if not email:
+            raise ValueError("User email not found in token")
+
+        user_id = user.get("id")
+       
+        # Fetch debates for the user
+        debates_cursor = db.debates.find(id)
+        debates = await debates_cursor.to_list(length=None)
+
+        result = []
+        for debate in debates:
+            # Safely extract case name
+            title = "Unknown Case"
+            similar_case = debate.get("similar_case")
+            if similar_case and isinstance(similar_case, dict):
+                case_info = similar_case.get("case")
+                if case_info and isinstance(case_info, dict):
+                    title = case_info.get("case_name", "Unknown Case")
+            
+            result.append({
+                "id": str(debate["_id"]),
+                "title": title,
+                "status": debate.get("status", "unknown"),
+                "created_at": debate.get("created_at")
+            })
+
+        return {
+            "status": "success",
+            "data": result
+        }
+
+    except Exception as e:
+        print(f"Error fetching debates: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to fetch debates: {str(e)}")

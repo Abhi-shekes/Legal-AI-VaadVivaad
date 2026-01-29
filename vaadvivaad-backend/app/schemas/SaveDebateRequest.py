@@ -1,6 +1,6 @@
 
 from pydantic import BaseModel, Field
-from typing import List, Union, Optional
+from typing import List, Union, Optional, Dict, Any
 
 
 class SimilarCase(BaseModel):
@@ -22,5 +22,5 @@ class DebateHistoryEntry(BaseModel):
 class SaveDebateRequest(BaseModel):
     debate_history: List[DebateHistoryEntry]
     ipc_section: str
-    similar_case: SimilarCase  # Use SimilarCase model instead of Dict
+    similar_case: Dict[str, Any]  # Changed to Dict to accept flexible structure
     user_id: str  # Added to match DebateInDB

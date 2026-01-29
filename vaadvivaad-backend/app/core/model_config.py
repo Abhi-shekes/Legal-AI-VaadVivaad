@@ -1,24 +1,42 @@
 from dotenv import load_dotenv, dotenv_values
-import google.generativeai as genai
+from google import genai
 import json
+import time
 from typing import Callable, Union
 from typing import List, Dict, Optional
 
 load_dotenv()
 env_vars = dotenv_values()
 GOOGLE_API_KEY = env_vars.get("GOOGLE_API_KEY")
-genai.configure(api_key=GOOGLE_API_KEY)
 
+# Initialize the client with the API key
+client = genai.Client(api_key=GOOGLE_API_KEY)
 
 
 def GENERATE_RESPONSE_FROM_GEMINI(prompt):
-    try:
-        model = genai.GenerativeModel('gemini-2.0-flash')
-        response = model.generate_content(prompt)
-        raw_text = response.text.strip()
-    except Exception as e:
-        print(f"Error generating content from Gemini: {e}")
-        return None
+    MAX_RETRIES = 3
+    RETRY_DELAY = 2  # seconds
+
+    for attempt in range(MAX_RETRIES):
+        try:
+
+            # for m in client.models.list():
+            #     print(m.name)
+
+            # Use the new SDK client
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt
+            )
+            raw_text = response.text.strip()
+            # If successful, break the retry loop
+            break
+        except Exception as e:
+            print(f"Error generating content from Gemini (Attempt {attempt + 1}/{MAX_RETRIES}): {e}")
+            if attempt < MAX_RETRIES - 1:
+                time.sleep(RETRY_DELAY)
+            else:
+                return None
 
     if not raw_text:
         print("Error: Empty response from Gemini")
