@@ -4,51 +4,68 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Scale, User, LogOut, FileText, Plus, Search } from "lucide-react"
 import CaseSubmissionForm from "../components/CaseSubmissionForm"
 import RecentCasesList from "../components/RecentCasesList"
-import backendURL from "../config"
 import { useNavigate } from "react-router-dom";
 import useAuthStore from "../store/authStore"
 import axios from "axios"
 
 export default function Dashboard() {
-  
-  const {user , setLogOut} = useAuthStore();
+
+  const { user, setLogOut } = useAuthStore();
 
   const [caseSummary, setCaseSummary] = useState({
     total_cases: 0,
     not_solved_cases: 0,
   })
   const [successRate, setSuccessRate] = useState(0)
-
-  // useEffect(() => {
-  //   const loggedInUser = JSON.parse(localStorage.getItem("user"))
-
-  //   if (loggedInUser) {
-  //     setUser(loggedInUser)
-  //     fetchCaseSummary(loggedInUser.user_id)
-  //   } else {
-  //     setUser(null)
-  //   }
-  // }, [])
+  const [recentCases, setRecentCases] = useState([])
+  const [loadingCases, setLoadingCases] = useState(true)
 
   const navigate = useNavigate();
   const apiUrl = import.meta.env.VITE_API_URL;
+
+  // Recent Cases Fetch
+  useEffect(() => {
+    const fetchRecentCases = async () => {
+      try {
+        const response = await axios.get(`${apiUrl}/user/debate`, {
+          withCredentials: true // Important for session cookie
+        });
+
+        if (response.data.status === "success") {
+          setRecentCases(response.data.data);
+          // Optional: Update summary based on fetched cases if backend doesn't provide summary endpoint
+          setCaseSummary({
+            total_cases: response.data.data.length,
+            not_solved_cases: response.data.data.filter(c => c.status !== "completed").length
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching recent cases:", error);
+      } finally {
+        setLoadingCases(false);
+      }
+    };
+
+    fetchRecentCases();
+  }, [apiUrl]);
+
   const handleLogout = async () => {
     try {
 
       const resp = await axios.post(`${apiUrl}/auth/logout`, {}, {
-          withCredentials: true  
+        withCredentials: true
       });
 
 
       if (resp.data.status === "success") {
-        
-        
+
+
 
         setTimeout(() => {
           setLogOut();
           navigate("/login");
         }, 1000);
-        
+
       } else {
         alert("Something Went Wrong");
       }
@@ -59,43 +76,23 @@ export default function Dashboard() {
     }
   };
 
-  // // Fetch case summary
-  // const fetchCaseSummary = async (userId) => {
-  //   try {
-  //     const response = await fetch(`${backendURL}/cases/summary/${userId}`);
-  //     if (response.ok) {
-  //       const data = await response.json();
-  //       const totalCases = data.total_cases;
-  //       const notSolvedCases = data.not_solved_cases;
-  //       const completedCases = totalCases - notSolvedCases;
-  //       const successRate = totalCases > 0 ? ((completedCases / totalCases) * 100).toFixed(2) : 0;
-
-  //       setCaseSummary({ total_cases: totalCases, not_solved_cases: notSolvedCases });
-  //       setSuccessRate(successRate);
-  //     } else {
-  //       throw new Error("Failed to fetch case summary");
-  //     }
-  //   } catch (error) {
-  //     console.error("Error fetching case summary:", error);
-  //   }
-  // };
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-blue-950 text-white shadow-md">
         <div className="container mx-auto px-6 py-4">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4 md:gap-0">
             <Link to="/" className="flex items-center text-xl font-serif font-bold">
               <Scale className="mr-2" /> LegalAI
             </Link>
 
-            <div className="flex items-center space-x-6">
-              <div className="relative">
+            <div className="flex flex-wrap justify-center items-center gap-4 md:space-x-6 w-full md:w-auto">
+              <div className="relative w-full md:w-auto">
                 <input
                   type="text"
                   placeholder="Search cases..."
-                  className="bg-blue-900 text-white placeholder-blue-300 rounded-full py-2 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  className="bg-blue-900 text-white placeholder-blue-300 rounded-full py-2 pl-10 pr-4 w-full md:w-64 focus:outline-none focus:ring-2 focus:ring-amber-500"
                 />
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-blue-300" />
               </div>
@@ -104,9 +101,9 @@ export default function Dashboard() {
               {user && (
                 <div className="flex items-center">
                   <div className="w-8 h-8 bg-amber-500 rounded-full flex items-center justify-center text-blue-950 font-bold mr-2">
-                    {user.charAt(0).toUpperCase()} 
+                    {user.charAt(0).toUpperCase()}
                   </div>
-                  <span className="font-medium">{user}</span>
+                  <span className="font-medium hidden sm:inline">{user}</span>
                 </div>
               )}
 
@@ -181,7 +178,7 @@ export default function Dashboard() {
                 <h2 className="text-xl font-serif font-bold text-gray-800">Recent Cases</h2>
               </div>
 
-              <RecentCasesList />
+              <RecentCasesList cases={recentCases} loading={loadingCases} />
             </motion.div>
           </div>
 
@@ -199,7 +196,7 @@ export default function Dashboard() {
 
               <div className="p-6 space-y-4">
                 <Link
-                  to="/case/new"
+                  to="/user/case"
                   className="flex items-center p-3 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors"
                 >
                   <div className="w-10 h-10 bg-blue-900 rounded-full flex items-center justify-center text-white mr-3">
@@ -242,7 +239,7 @@ export default function Dashboard() {
         </div>
       </main>
 
-      
+
     </div>
   )
 }

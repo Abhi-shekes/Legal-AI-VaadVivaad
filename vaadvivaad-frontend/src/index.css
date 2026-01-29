@@ -1,3 +1,94 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --legal-blue: #1E3A8A;
+  --legal-gold: #D4AF37;
+  --supporting-green: #065F46;
+  --opposing-red: #991B1B;
+  --legal-blue-light: #3B82F6;
+  --legal-gold-light: #F59E0B;
+  --supporting-green-light: #10B981;
+  --opposing-red-light: #EF4444;
+}
+
+@keyframes bounce {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-6px); }
+}
+
+@keyframes slideInFromRight {
+  0% { transform: translateX(100%); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideInFromLeft {
+  0% { transform: translateX(-100%); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  0% { transform: translateY(20px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 5px rgba(212, 175, 55, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(212, 175, 55, 0.6), 0 0 30px rgba(212, 175, 55, 0.4); }
+}
+
+.typing-indicator span {
+  height: 8px;
+  width: 8px;
+  background-color: #6B7280;
+  border-radius: 50%;
+  display: inline-block;
+  margin: 0 2px;
+  animation: bounce 1.5s infinite ease-in-out;
+}
+.typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+.typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+.message-slide-right { animation: slideInFromRight 0.5s ease-out; }
+.message-slide-left { animation: slideInFromLeft 0.5s ease-out; }
+.message-fade-up { animation: fadeInUp 0.4s ease-out; }
+.glow-effect { animation: glow 2s infinite; }
+
+.legal-gradient {
+  background: linear-gradient(135deg, var(--legal-blue) 0%, var(--legal-blue-light) 100%);
+}
+
+.gold-gradient {
+  background: linear-gradient(135deg, var(--legal-gold) 0%, var(--legal-gold-light) 100%);
+}
+
+.supporting-gradient {
+  background: linear-gradient(135deg, var(--supporting-green) 0%, var(--supporting-green-light) 100%);
+}
+
+.opposing-gradient {
+  background: linear-gradient(135deg, var(--opposing-red) 0%, var(--opposing-red-light) 100%);
+}
+
+.legal-card {
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(30, 58, 138, 0.1);
+}
+
+.legal-shadow {
+  box-shadow: 0 10px 25px rgba(30, 58, 138, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.gold-accent {
+  border-left: 4px solid var(--legal-gold);
+}
+
+.supporting-accent {
+  border-left: 4px solid var(--supporting-green);
+}
+
+.opposing-accent {
+  border-left: 4px solid var(--opposing-red);
+}

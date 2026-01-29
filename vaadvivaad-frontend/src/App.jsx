@@ -10,6 +10,11 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import authStore from "./store/authStore"; // Zustand state for user authentication
 import Case from "./Pages/Case";
 import Contact from "./Pages/Contact";
+import CaseDetails from "./Pages/CaseDetails";
+import PublicRoute from "./components/PublicRoute";
+
+// ... existing imports
+
 function App() {
   const { role } = authStore((state) => state);
 
@@ -18,9 +23,26 @@ function App() {
       {/* Public Routes */}
       <Route element={<PublicLayout />}>
         <Route path="/" element={<Landing />} />
-        <Route path="login" element={<Login />} />
-        <Route path="signup" element={<Signup />} />
-        <Route path="contact" element={<Contact/>}/>
+
+        <Route
+          path="login"
+          element={
+            <PublicRoute>
+              <Login />
+            </PublicRoute>
+          }
+        />
+
+        <Route
+          path="signup"
+          element={
+            <PublicRoute>
+              <Signup />
+            </PublicRoute>
+          }
+        />
+
+        <Route path="contact" element={<Contact />} />
       </Route>
 
       {/* Protected Routes */}
@@ -29,7 +51,7 @@ function App() {
           path="/user/dashboard"
           element={
             <ProtectedRoute>
-              <Dashboard/>
+              <Dashboard />
             </ProtectedRoute>
           }
         />
@@ -38,11 +60,20 @@ function App() {
           path="/user/case"
           element={
             <ProtectedRoute>
-              <Case/>
+              <Case />
             </ProtectedRoute>
           }
         />
-        
+
+        <Route
+          path="/case/:id"
+          element={
+            <ProtectedRoute>
+              <CaseDetails />
+            </ProtectedRoute>
+          }
+        />
+
       </Route>
 
       {/* Catch-All Route */}
