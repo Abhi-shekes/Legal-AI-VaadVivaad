@@ -95,35 +95,35 @@ const ContactUs = () => {
 
       {/* Team roster */}
       <section className={`py-14 md:py-20 px-4 md:px-10 ${dark ? 'bg-white/[0.02]' : 'bg-white'}`}>
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           <motion.div ref={ref} variants={containerVariants} initial="hidden" animate={controls}>
             {TEAM.map((member, i) => (
               <motion.div
                 key={member.name}
                 variants={itemVariants}
-                className={`flex flex-col sm:flex-row gap-5 sm:items-start py-7 ${i !== 0 ? 'docket-rule' : ''}`}
+                className={`flex flex-col md:flex-row md:items-center gap-5 py-7 ${i !== 0 ? 'docket-rule' : ''}`}
               >
                 <div className={`flex-shrink-0 w-14 h-14 rounded-md flex items-center justify-center font-mono text-sm font-medium border ${dark ? 'border-brass/30 text-brass bg-brass/5' : 'border-ink-blue/15 text-ink-blue bg-ink-blue/5'
                   }`}>
                   {initials(member.name)}
                 </div>
-                <div className="flex-grow">
+                <div className="flex-grow max-w-xl">
                   <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-1.5">
                     <h3 className="font-semibold text-lg">{member.name}</h3>
                     <span className="docket-label text-[11px] text-brass">{member.role}</span>
                   </div>
-                  <p className={`text-sm leading-relaxed mb-2.5 ${dark ? 'text-gray-400' : 'text-ink-blue/60'}`}>
+                  <p className={`text-sm leading-relaxed ${dark ? 'text-gray-400' : 'text-ink-blue/60'}`}>
                     {member.bio}
                   </p>
-                  <a
-                    href={`mailto:${member.email}`}
-                    className={`inline-flex items-center gap-1.5 text-sm transition-colors ${dark ? 'text-gray-400 hover:text-brass' : 'text-ink-blue/60 hover:text-brass'
-                      }`}
-                  >
-                    <Mail size={13} />
-                    {member.email}
-                  </a>
                 </div>
+                <a
+                  href={`mailto:${member.email}`}
+                  className={`md:ml-auto md:text-right flex-shrink-0 inline-flex items-center gap-1.5 text-sm transition-colors ${dark ? 'text-gray-400 hover:text-brass' : 'text-ink-blue/60 hover:text-brass'
+                    }`}
+                >
+                  <Mail size={13} />
+                  {member.email}
+                </a>
               </motion.div>
             ))}
           </motion.div>
@@ -132,7 +132,7 @@ const ContactUs = () => {
 
       {/* Get in touch + form */}
       <section className="py-16 md:py-24 px-4 md:px-10">
-        <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-12 md:gap-16">
+        <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-12 md:gap-16">
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             whileInView={{ opacity: 1, x: 0 }}

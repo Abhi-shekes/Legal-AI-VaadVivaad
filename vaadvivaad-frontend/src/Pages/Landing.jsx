@@ -5,7 +5,7 @@ import { motion, useAnimation } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import {
   Scale, Search, ShieldCheck, History, MessagesSquare, ArrowRight,
-  Sparkles, Database, Radio, Archive, Gavel, Landmark,
+  Sparkles, Database, Radio, Archive, Gavel, Landmark, ClipboardList,
 } from 'lucide-react';
 
 const EXHIBITS = [
@@ -14,24 +14,28 @@ const EXHIBITS = [
     icon: MessagesSquare,
     title: 'AI-simulated debate',
     body: 'Two AI counsel argue your case live, in real time, over Socket.IO — one for, one against.',
+    tag: 'Real-time',
   },
   {
     id: '02',
     icon: Search,
     title: 'Precedent & IPC search',
     body: 'Semantic search over case law and IPC sections grounds every argument in something citable.',
+    tag: 'Semantic search',
   },
   {
     id: '03',
     icon: ShieldCheck,
     title: 'Evidence guidance',
     body: 'Typical evidence for the relevant IPC section is surfaced alongside the arguments.',
+    tag: 'Auto-surfaced',
   },
   {
     id: '04',
     icon: History,
     title: 'Case history',
     body: 'Every debate is saved to your dashboard — round by round, ready to revisit.',
+    tag: 'Persistent',
   },
 ];
 
@@ -123,7 +127,7 @@ const Landing = () => {
           }}
         />
 
-        <div className="w-full max-w-5xl mx-auto relative z-10 text-center">
+        <div className="w-full max-w-7xl mx-auto relative z-10 text-center">
           <motion.p
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -152,7 +156,7 @@ const Landing = () => {
           </motion.p>
 
           {/* Exhibit A / Exhibit B live argument preview */}
-          <div className="grid sm:grid-cols-2 gap-4 md:gap-5 text-left max-w-3xl mx-auto mb-10">
+          <div className="grid sm:grid-cols-2 gap-4 md:gap-5 text-left max-w-4xl mx-auto mb-10">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -207,7 +211,7 @@ const Landing = () => {
 
       {/* ---------- Features: docket ledger ---------- */}
       <section id="features-section" className={`py-16 md:py-24 px-4 sm:px-6 md:px-10 ${dark ? 'bg-white/[0.02]' : 'bg-white'}`}>
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <motion.div {...fadeUp()} className="mb-10 md:mb-14">
             <p className={`docket-label text-xs mb-3 ${faint}`}>Docket · Capabilities</p>
             <h2 className="font-display text-3xl md:text-4xl">What's on the record.</h2>
@@ -218,18 +222,21 @@ const Landing = () => {
               <motion.div
                 key={f.id}
                 variants={itemVariants}
-                className={`flex items-start gap-5 md:gap-8 py-6 md:py-7 ${i !== 0 ? 'docket-rule' : ''}`}
+                className={`flex items-center gap-5 md:gap-8 py-6 md:py-7 ${i !== 0 ? 'docket-rule' : ''}`}
               >
-                <span className={`font-mono text-xs pt-1 flex-shrink-0 w-8 ${dark ? 'text-gray-600' : 'text-ink-blue/35'}`}>
+                <span className={`font-mono text-xs flex-shrink-0 w-8 ${dark ? 'text-gray-600' : 'text-ink-blue/35'}`}>
                   {f.id}
                 </span>
                 <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center ${dark ? 'bg-brass/10 text-brass' : 'bg-ink-blue/5 text-ink-blue'}`}>
                   <f.icon size={18} />
                 </div>
-                <div>
+                <div className="flex-grow min-w-0">
                   <h3 className="font-semibold text-lg mb-1">{f.title}</h3>
-                  <p className={`text-sm leading-relaxed ${muted}`}>{f.body}</p>
+                  <p className={`text-sm leading-relaxed max-w-xl ${muted}`}>{f.body}</p>
                 </div>
+                <span className={`docket-label hidden md:block text-[10px] flex-shrink-0 ${faint}`}>
+                  {f.tag}
+                </span>
               </motion.div>
             ))}
           </motion.div>
@@ -238,7 +245,7 @@ const Landing = () => {
 
       {/* ---------- Grounded in the record: IPC + precedent specimens ---------- */}
       <section className="py-16 md:py-24 px-4 sm:px-6 md:px-10">
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <motion.div {...fadeUp()} className="mb-10 md:mb-14 text-center">
             <p className={`docket-label text-xs mb-3 ${faint}`}>Evidentiary basis</p>
             <h2 className="font-display text-3xl md:text-4xl mb-4">Every argument cites something real.</h2>
@@ -247,7 +254,7 @@ const Landing = () => {
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 gap-5 md:gap-6">
+          <div className="grid md:grid-cols-3 gap-5 md:gap-6">
             {/* IPC specimen */}
             <motion.div
               {...fadeUp(0.05)}
@@ -298,6 +305,30 @@ const Landing = () => {
                 </div>
               </div>
             </motion.div>
+
+            {/* Evidence specimen */}
+            <motion.div
+              {...fadeUp(0.25)}
+              className={`rounded-xl p-6 md:p-7 border ${dark ? 'bg-white/[0.03] border-white/10' : 'bg-white border-ink-blue/10 shadow-sm'}`}
+            >
+              <div className="flex items-center gap-2.5 mb-5">
+                <ClipboardList size={16} className="text-brass" />
+                <p className="docket-label text-[11px] text-brass">Evidence specimen</p>
+              </div>
+              <h3 className="font-display text-2xl mb-1">Typical evidence</h3>
+              <p className={`text-xs font-mono mb-5 ${faint}`}>IPC 300 · Culpable homicide</p>
+
+              <div className="flex flex-wrap gap-2 docket-rule pt-4">
+                {['Eyewitness testimony', 'Forensic report', 'Weapon recovery', 'Medical exam'].map((tag) => (
+                  <span
+                    key={tag}
+                    className={`text-[11px] px-2.5 py-1 rounded-full font-medium ${dark ? 'bg-brass/10 text-brass/90' : 'bg-ink-blue/5 text-ink-blue/80'}`}
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </motion.div>
           </div>
 
           <p className={`text-center font-mono text-[11px] mt-6 ${dark ? 'text-gray-600' : 'text-ink-blue/35'}`}>
@@ -308,7 +339,7 @@ const Landing = () => {
 
       {/* ---------- How it works ---------- */}
       <section className={`py-16 md:py-24 px-4 sm:px-6 md:px-10 ${dark ? 'bg-white/[0.02]' : 'bg-white'}`}>
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <motion.div {...fadeUp()} className="mb-14 md:mb-16 text-center">
             <p className={`docket-label text-xs mb-3 ${faint}`}>Procedure</p>
             <h2 className="font-display text-3xl md:text-4xl">How a debate unfolds.</h2>
@@ -349,7 +380,7 @@ const Landing = () => {
 
       {/* ---------- Built on: tech stack strip ---------- */}
       <section className="py-16 md:py-20 px-4 sm:px-6 md:px-10">
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <motion.div {...fadeUp()} className="mb-10 md:mb-12 text-center">
             <p className={`docket-label text-xs mb-3 ${faint}`}>Under the hood</p>
             <h2 className="font-display text-3xl md:text-4xl">No black box.</h2>
@@ -376,23 +407,23 @@ const Landing = () => {
 
       {/* ---------- FAQ ---------- */}
       <section className={`py-16 md:py-24 px-4 sm:px-6 md:px-10 ${dark ? 'bg-white/[0.02]' : 'bg-white'}`}>
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <motion.div {...fadeUp()} className="mb-10 md:mb-14">
             <p className={`docket-label text-xs mb-3 ${faint}`}>Before you file</p>
             <h2 className="font-display text-3xl md:text-4xl">Questions worth asking.</h2>
           </motion.div>
 
-          <div>
+          <div className="grid md:grid-cols-2 gap-4 md:gap-5">
             {FAQS.map((f, i) => (
               <motion.div
                 key={f.q}
                 initial={{ opacity: 0, y: 16 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: i * 0.06 }}
-                className={`flex gap-5 py-6 ${i !== 0 ? 'docket-rule' : ''}`}
+                transition={{ duration: 0.5, delay: i * 0.08 }}
+                className={`flex gap-4 p-6 rounded-lg border-l-2 border-brass/40 ${dark ? 'bg-white/[0.03]' : 'bg-parchment/60'}`}
               >
-                <span className={`font-display text-xl flex-shrink-0 w-6 ${dark ? 'text-gray-600' : 'text-ink-blue/30'}`}>?</span>
+                <span className={`font-display text-xl flex-shrink-0 ${dark ? 'text-gray-600' : 'text-ink-blue/30'}`}>?</span>
                 <div>
                   <h3 className="font-semibold mb-1.5">{f.q}</h3>
                   <p className={`text-sm leading-relaxed ${muted}`}>{f.a}</p>
@@ -425,7 +456,7 @@ const Landing = () => {
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true }}
           transition={{ duration: 0.7 }}
-          className="max-w-2xl mx-auto text-center relative z-10 text-white"
+          className="max-w-3xl mx-auto text-center relative z-10 text-white"
         >
           <h2 className="font-display text-3xl md:text-4xl mb-4">Ready to file?</h2>
           <p className="text-base md:text-lg text-blue-100/70 mb-8">
