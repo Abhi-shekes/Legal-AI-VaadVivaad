@@ -14,6 +14,8 @@ import Case from "./Pages/Case";
 import Contact from "./Pages/Contact";
 import CaseDetails from "./Pages/CaseDetails";
 import PublicRoute from "./components/PublicRoute";
+import Terms from "./Pages/Terms";
+import Privacy from "./Pages/Privacy";
 
 // ... existing imports
 
@@ -47,6 +49,8 @@ function App() {
         />
 
         <Route path="contact" element={<Contact />} />
+        <Route path="terms" element={<Terms />} />
+        <Route path="privacy" element={<Privacy />} />
       </Route>
 
       {/* Protected Routes */}

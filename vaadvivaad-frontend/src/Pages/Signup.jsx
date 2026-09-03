@@ -129,13 +129,13 @@ const Signup = () => {
           />
           <span className={`text-xs leading-relaxed ${dark ? "text-gray-400" : "text-gray-600"}`}>
             I agree to the{" "}
-            <a href="#" className={`font-medium hover:underline ${dark ? "text-[#C7A046]" : "text-[#1B2A4A]"}`}>
+            <Link to="/terms" target="_blank" className={`font-medium hover:underline ${dark ? "text-[#C7A046]" : "text-[#1B2A4A]"}`}>
               Terms of Service
-            </a>{" "}
+            </Link>{" "}
             and{" "}
-            <a href="#" className={`font-medium hover:underline ${dark ? "text-[#C7A046]" : "text-[#1B2A4A]"}`}>
+            <Link to="/privacy" target="_blank" className={`font-medium hover:underline ${dark ? "text-[#C7A046]" : "text-[#1B2A4A]"}`}>
               Privacy Policy
-            </a>
+            </Link>
           </span>
         </label>
 
