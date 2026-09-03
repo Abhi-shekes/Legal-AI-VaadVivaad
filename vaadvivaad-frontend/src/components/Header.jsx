@@ -87,7 +87,7 @@ const Header = () => {
       : 'bg-parchment/90 text-ink-blue'
       } ${isScrolled ? 'shadow-[0_1px_0_0_rgba(0,0,0,0.06)]' : ''} border-b ${dark ? 'border-white/10' : 'border-ink-blue/10'
       }`}>
-      <div className="w-full max-w-7xl mx-auto h-full flex justify-between items-center">
+      <div className="w-full h-full flex justify-between items-center">
 
         {/* Logo */}
         <div className="flex items-center flex-shrink-0">
