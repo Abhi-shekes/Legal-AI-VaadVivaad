@@ -62,3 +62,6 @@ node_modules/
 staticfiles/
 media/
 uploads/
+
+# Local verification scratch
+.audit-evidence/
