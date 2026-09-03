@@ -1,16 +1,32 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faMoon, faSun, faBars, faTimes } from '@fortawesome/free-solid-svg-icons';
-import { Link, useLocation } from 'react-router-dom';
+import { faMoon, faSun, faBars, faTimes, faRightFromBracket } from '@fortawesome/free-solid-svg-icons';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import themeStore from '../store/themeStore';
+import authStore from '../store/authStore';
 import logo from '../assets/nyayavada_logo.png';
 
 const Header = () => {
   const { theme, changeTheme } = themeStore((state) => state);
+  const { isLoggedIn, setLogOut } = authStore((state) => state);
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const dark = theme === 'dark';
+
+  const handleLogout = async () => {
+    setIsOpen(false);
+    try {
+      await axios.post(`${import.meta.env.VITE_API_URL}/auth/logout`, {}, { withCredentials: true });
+    } catch (err) {
+      console.error('Error logging out:', err);
+    } finally {
+      setLogOut();
+      navigate('/');
+    }
+  };
 
   // Handle scroll effect for header
   useEffect(() => {
@@ -67,7 +83,6 @@ const Header = () => {
     { label: 'Home', path: '/' },
     { label: 'Features', onClick: scrollToFeatures, isLink: false },
     { label: 'Contact', path: '/contact' },
-    { label: 'Sign Up', path: '/signup' },
   ];
 
   const isActive = (path) => path && location.pathname === path;
@@ -105,7 +120,7 @@ const Header = () => {
 
         {/* Desktop Navigation Links */}
         <div className="hidden lg:flex items-center">
-          {navItems.slice(0, 3).map((item) => (
+          {navItems.map((item) => (
             item.isLink === false ? (
               <button key={item.label} onClick={item.onClick} className={navLinkClass(false)}>
                 {item.label}
@@ -132,15 +147,31 @@ const Header = () => {
 
           {/* Auth Buttons - Desktop */}
           <div className="flex items-center gap-2 ml-2 pl-2 border-l border-current/10">
-            <Link to="/signup" className={navLinkClass(isActive('/signup'))}>
-              Sign Up
-            </Link>
-            <Link
-              to="/login"
-              className="py-2.5 px-5 rounded-full font-medium text-sm transition-all duration-200 bg-brass text-ink hover:bg-brass/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-brass focus-visible:ring-offset-2"
-            >
-              Login
-            </Link>
+            {isLoggedIn ? (
+              <>
+                <button onClick={handleLogout} className={navLinkClass(false)}>
+                  Logout
+                </button>
+                <Link
+                  to="/user/dashboard"
+                  className="py-2.5 px-5 rounded-full font-medium text-sm transition-all duration-200 bg-brass text-ink hover:bg-brass/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-brass focus-visible:ring-offset-2"
+                >
+                  Dashboard
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link to="/signup" className={navLinkClass(isActive('/signup'))}>
+                  Sign Up
+                </Link>
+                <Link
+                  to="/login"
+                  className="py-2.5 px-5 rounded-full font-medium text-sm transition-all duration-200 bg-brass text-ink hover:bg-brass/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-brass focus-visible:ring-offset-2"
+                >
+                  Login
+                </Link>
+              </>
+            )}
           </div>
         </div>
 
@@ -155,10 +186,10 @@ const Header = () => {
             <FontAwesomeIcon icon={theme === 'light' ? faMoon : faSun} className="text-base" />
           </button>
           <Link
-            to="/login"
+            to={isLoggedIn ? '/user/dashboard' : '/login'}
             className="py-2 px-4 rounded-full font-medium text-sm bg-brass text-ink hover:bg-brass/90 transition-colors"
           >
-            Login
+            {isLoggedIn ? 'Dashboard' : 'Login'}
           </Link>
           <button onClick={toggleMenu} className="p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-brass rounded">
             <FontAwesomeIcon
@@ -244,13 +275,43 @@ const Header = () => {
             </div>
 
             <div className="pt-6 mt-2">
-              <Link
-                to="/login"
-                onClick={() => setIsOpen(false)}
-                className="w-full block py-3.5 px-4 rounded-full font-medium text-center bg-brass text-ink hover:bg-brass/90 transition-colors mb-4"
-              >
-                Login
-              </Link>
+              {isLoggedIn ? (
+                <>
+                  <Link
+                    to="/user/dashboard"
+                    onClick={() => setIsOpen(false)}
+                    className="w-full block py-3.5 px-4 rounded-full font-medium text-center bg-brass text-ink hover:bg-brass/90 transition-colors mb-3"
+                  >
+                    Dashboard
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-full font-medium transition-colors mb-4 ${dark ? 'text-gray-300 hover:text-white hover:bg-white/5' : 'text-ink-blue/70 hover:text-ink-blue hover:bg-ink-blue/5'
+                      }`}
+                  >
+                    <FontAwesomeIcon icon={faRightFromBracket} className="text-sm" />
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    to="/login"
+                    onClick={() => setIsOpen(false)}
+                    className="w-full block py-3.5 px-4 rounded-full font-medium text-center bg-brass text-ink hover:bg-brass/90 transition-colors mb-3"
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    to="/signup"
+                    onClick={() => setIsOpen(false)}
+                    className={`w-full block py-3 px-4 rounded-full font-medium text-center transition-colors mb-4 ${dark ? 'text-gray-300 hover:text-white hover:bg-white/5' : 'text-ink-blue/70 hover:text-ink-blue hover:bg-ink-blue/5'
+                      }`}
+                  >
+                    Sign Up
+                  </Link>
+                </>
+              )}
               <div className={`font-mono text-[11px] text-center tracking-wide ${dark ? 'text-gray-500' : 'text-ink-blue/40'}`}>
                 © VaadVivaad {new Date().getFullYear()}
               </div>
