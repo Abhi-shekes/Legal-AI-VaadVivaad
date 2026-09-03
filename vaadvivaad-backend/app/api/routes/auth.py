@@ -35,7 +35,7 @@ async def login(user: LoginUser, response: Response , response_model=SuccessMess
         return {"status": "fail", "message": "Invalid Credentials"}
     
     token = create_access_token({"email": user.email , "role": "user", "id": str(db_user["_id"])})
-    
+
     # Set token in HTTP-only cookie
     response.set_cookie(
         key="token",
@@ -46,8 +46,12 @@ async def login(user: LoginUser, response: Response , response_model=SuccessMess
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         path="/"
     )
-    
-    return {"status": "success", "message": "User logged in successfully"}
+
+    return {
+        "status": "success",
+        "message": "User logged in successfully",
+        "data": {"name": db_user.get("name", ""), "email": user.email},
+    }
 
 @router.post("/logout", response_model=SuccessMessage)
 async def logout(request: Request, response: Response):
