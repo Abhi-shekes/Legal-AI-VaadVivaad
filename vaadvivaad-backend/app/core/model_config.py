@@ -1,16 +1,13 @@
-from dotenv import load_dotenv, dotenv_values
 from google import genai
 import json
 import time
 from typing import Callable, Union
 from typing import List, Dict, Optional
 
-load_dotenv()
-env_vars = dotenv_values()
-GOOGLE_API_KEY = env_vars.get("GOOGLE_API_KEY")
+from app.core.config import settings
 
 # Initialize the client with the API key
-client = genai.Client(api_key=GOOGLE_API_KEY)
+client = genai.Client(api_key=settings.GOOGLE_API_KEY)
 
 
 def GENERATE_RESPONSE_FROM_GEMINI(prompt):
@@ -25,7 +22,7 @@ def GENERATE_RESPONSE_FROM_GEMINI(prompt):
 
             # Use the new SDK client
             response = client.models.generate_content(
-                model="gemini-2.5-flash",
+                model=settings.GEMINI_MODEL,
                 contents=prompt
             )
             raw_text = response.text.strip()
