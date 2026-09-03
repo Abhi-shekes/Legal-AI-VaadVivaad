@@ -133,10 +133,13 @@ const MessageCard = ({ data }) => {
                     </div>
                 )
             case "error":
+            case "debate_failed":
                 return (
                     <div className="flex items-center py-2">
                         <FontAwesomeIcon icon={faExclamationTriangle} className="text-red-600 mr-3" />
-                        <p className="text-red-700 font-medium">{data.message}</p>
+                        <p className="text-red-700 font-medium">
+                            {data.message || "The debate could not be completed. Please try again."}
+                        </p>
                     </div>
                 )
             default:
