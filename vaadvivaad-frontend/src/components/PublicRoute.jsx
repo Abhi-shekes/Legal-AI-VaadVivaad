@@ -1,16 +1,16 @@
-import React from 'react';
-import useAuthStore from '../store/authStore';
-import { Navigate } from "react-router-dom";
+import { Navigate } from "react-router-dom"
+import { Loader2 } from "lucide-react"
+import useAuthStore from "../store/authStore"
 
-const PublicRoute = ({ children }) => {
-    const { isLoggedIn } = useAuthStore((state) => state);
-
-    // If logged in, redirect to dashboard. Otherwise, render children (auth page).
+/** Keeps signed-in users out of login/signup, once the session is known. */
+export default function PublicRoute({ children }) {
+  const { isLoggedIn, checked } = useAuthStore((s) => s)
+  if (!checked) {
     return (
-        <>
-            {isLoggedIn ? <Navigate to='/user/dashboard' replace /> : children}
-        </>
-    );
-};
-
-export default PublicRoute;
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 size={22} className="animate-spin text-brass" />
+      </div>
+    )
+  }
+  return isLoggedIn ? <Navigate to="/user/dashboard" replace /> : children
+}

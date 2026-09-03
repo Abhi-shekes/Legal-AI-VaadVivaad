@@ -1,3 +1,4 @@
+import { Suspense, lazy } from "react";
 import { Routes, Route } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -5,26 +6,30 @@ import Landing from "./Pages/Landing";
 import Login from "./Pages/Login";
 import Signup from "./Pages/Signup";
 import Page404 from "./Pages/Page404";
-import Dashboard from "./Pages/Dashboard";
+const Dashboard = lazy(() => import("./Pages/Dashboard"));
 
 import PublicLayout from "./layouts/PublicLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
-import authStore from "./store/authStore"; // Zustand state for user authentication
-import Case from "./Pages/Case";
-import Contact from "./Pages/Contact";
-import CaseDetails from "./Pages/CaseDetails";
+import useAuthStore from "./store/authStore";
+import { useSession } from "./hooks/useSession";
+const Case = lazy(() => import("./Pages/Case"));
+const Contact = lazy(() => import("./Pages/Contact"));
+const CaseDetails = lazy(() => import("./Pages/CaseDetails"));
 import PublicRoute from "./components/PublicRoute";
-import Terms from "./Pages/Terms";
-import Privacy from "./Pages/Privacy";
+const Terms = lazy(() => import("./Pages/Terms"));
+const Privacy = lazy(() => import("./Pages/Privacy"));
 
 // ... existing imports
 
 function App() {
-  const { role } = authStore((state) => state);
+  // One server-side session check per load; routes wait on it.
+  useSession();
+  const { role } = useAuthStore((state) => state);
 
   return (
     <>
     <ToastContainer position="top-right" theme="colored" autoClose={3500} newestOnTop />
+    <Suspense fallback={<div className="min-h-screen" />}>
     <Routes>
       {/* Public Routes */}
       <Route element={<PublicLayout />}>
@@ -87,6 +92,7 @@ function App() {
       {/* Catch-All Route */}
       <Route path="*" element={<Page404 />} />
     </Routes>
+    </Suspense>
     </>
   );
 }

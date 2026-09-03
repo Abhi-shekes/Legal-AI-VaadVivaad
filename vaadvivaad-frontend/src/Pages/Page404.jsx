@@ -1,6 +1,5 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import themeStore from '../store/themeStore';
 
 const Page404 = () => {
@@ -16,16 +15,7 @@ const Page404 = () => {
     >
       {/* Lottie Animation with Dynamic Size */}
       <div className="w-full max-w-xs sm:max-w-sm md:max-w-md">
-        <DotLottieReact
-          src="https://lottie.host/b16147f4-25a8-4f06-9df2-8e8722d42beb/QnBYBwBaI0.lottie"
-          loop
-          autoplay
-          style={{
-            width: '100%',
-            height: '100%',
-            maxHeight: '260px',
-          }}
-        />
+        <div className="text-[7rem] md:text-[10rem] font-display leading-none text-brass/25 select-none">404</div>
       </div>
 
       <p className={`docket-label text-xs ${dark ? 'text-gray-500' : 'text-ink-blue/50'}`}>

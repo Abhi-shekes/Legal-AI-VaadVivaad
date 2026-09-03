@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faMoon, faSun, faBars, faTimes, faRightFromBracket } from '@fortawesome/free-solid-svg-icons';
+import { api } from '../lib/api';
+import { Moon, Sun, Menu, X, LogOut } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import themeStore from '../store/themeStore';
 import authStore from '../store/authStore';
@@ -19,7 +18,7 @@ const Header = () => {
   const handleLogout = async () => {
     setIsOpen(false);
     try {
-      await axios.post(`${import.meta.env.VITE_API_URL}/auth/logout`, {}, { withCredentials: true });
+      await api.logout();
     } catch (err) {
       console.error('Error logging out:', err);
     } finally {
@@ -139,10 +138,7 @@ const Header = () => {
               }`}
             aria-label="Toggle theme"
           >
-            <FontAwesomeIcon
-              icon={theme === 'light' ? faMoon : faSun}
-              className="text-base"
-            />
+            {theme === 'light' ? <Moon size={18} className="text-base" /> : <Sun size={18} className="text-base" />}
           </button>
 
           {/* Auth Buttons - Desktop */}
@@ -183,7 +179,7 @@ const Header = () => {
               }`}
             aria-label="Toggle theme"
           >
-            <FontAwesomeIcon icon={theme === 'light' ? faMoon : faSun} className="text-base" />
+            {theme === 'light' ? <Moon size={18} className="text-base" /> : <Sun size={18} className="text-base" />}
           </button>
           <Link
             to={isLoggedIn ? '/user/dashboard' : '/login'}
@@ -192,10 +188,7 @@ const Header = () => {
             {isLoggedIn ? 'Dashboard' : 'Login'}
           </Link>
           <button onClick={toggleMenu} className="p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-brass rounded">
-            <FontAwesomeIcon
-              icon={isOpen ? faTimes : faBars}
-              className={`text-xl ${dark ? 'text-white' : 'text-ink-blue'}`}
-            />
+            {isOpen ? <X size={20} className={`text-xl ${dark ? 'text-white' : 'text-ink-blue'}`} /> : <Menu size={20} className={`text-xl ${dark ? 'text-white' : 'text-ink-blue'}`} />}
           </button>
         </div>
 
@@ -207,17 +200,14 @@ const Header = () => {
               }`}
             aria-label="Toggle theme"
           >
-            <FontAwesomeIcon icon={theme === 'light' ? faMoon : faSun} className="text-base" />
+            {theme === 'light' ? <Moon size={18} className="text-base" /> : <Sun size={18} className="text-base" />}
           </button>
           <button
             onClick={toggleMenu}
             className="p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-brass rounded"
             aria-label={isOpen ? "Close menu" : "Open menu"}
           >
-            <FontAwesomeIcon
-              icon={isOpen ? faTimes : faBars}
-              className={`text-xl transition-transform ${dark ? 'text-white' : 'text-ink-blue'} ${isOpen ? 'rotate-90' : ''}`}
-            />
+            {isOpen ? <X size={20} className={`text-xl transition-transform ${dark ? 'text-white' : 'text-ink-blue'} ${isOpen ? 'rotate-90' : ''}`} /> : <Menu size={20} className={`text-xl transition-transform ${dark ? 'text-white' : 'text-ink-blue'} ${isOpen ? 'rotate-90' : ''}`} />}
           </button>
         </div>
       </div>
@@ -245,7 +235,7 @@ const Header = () => {
                   }`}
                 aria-label="Close menu"
               >
-                <FontAwesomeIcon icon={faTimes} className="text-xl" />
+                <X size={16} className="text-xl" />
               </button>
             </div>
 
@@ -289,7 +279,7 @@ const Header = () => {
                     className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-full font-medium transition-colors mb-4 ${dark ? 'text-gray-300 hover:text-white hover:bg-white/5' : 'text-ink-blue/70 hover:text-ink-blue hover:bg-ink-blue/5'
                       }`}
                   >
-                    <FontAwesomeIcon icon={faRightFromBracket} className="text-sm" />
+                    <LogOut size={16} className="text-sm" />
                     Logout
                   </button>
                 </>

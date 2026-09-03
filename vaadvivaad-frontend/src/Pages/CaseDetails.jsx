@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { useParams, Link } from "react-router-dom"
-import axios from "axios"
+import { api } from "../lib/api"
 import { ArrowLeft, AlertTriangle, Loader2 } from "lucide-react"
 import DebateChat from "../components/case/DebateChat"
 import AppHeader from "../components/AppHeader"
@@ -21,15 +21,12 @@ const CaseDetails = () => {
     const dark = theme === "dark"
     const handleLogout = useLogout()
 
-    const apiUrl = import.meta.env.VITE_API_URL
 
     useEffect(() => {
         const fetchCaseDetails = async () => {
             try {
                 setLoading(true)
-                const response = await axios.get(`${apiUrl}/user/debate/${id}`, {
-                    withCredentials: true
-                })
+                const response = await api.getCase(id)
 
                 if (response.data.status === "success") {
                     const data = Array.isArray(response.data.data) ? response.data.data[0] : response.data.data;

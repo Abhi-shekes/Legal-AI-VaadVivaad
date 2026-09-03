@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import axios from "axios";
+import { api, ApiError } from "../lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import { Mail, Lock, ArrowRight, Loader2, ShieldCheck } from "lucide-react";
@@ -28,11 +28,7 @@ const Login = () => {
     setError("");
 
     try {
-      const resp = await axios.post(
-        `${import.meta.env.VITE_API_URL}/auth/login`,
-        { email, password },
-        { withCredentials: true }
-      );
+      const resp = await api.login(email, password);
 
       if (resp.data.status === "success") {
         toast.success("Welcome back! Redirecting to your dashboard…");

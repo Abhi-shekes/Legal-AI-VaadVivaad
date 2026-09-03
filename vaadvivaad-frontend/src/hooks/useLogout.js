@@ -1,23 +1,22 @@
 import { useNavigate } from "react-router-dom"
-import axios from "axios"
+import { toast } from "react-toastify"
+import { api } from "../lib/api"
 import useAuthStore from "../store/authStore"
 
 export default function useLogout() {
-  const { setLogOut } = useAuthStore()
   const navigate = useNavigate()
-  const apiUrl = import.meta.env.VITE_API_URL
+  const setLogOut = useAuthStore((s) => s.setLogOut)
 
   return async () => {
     try {
-      const resp = await axios.post(`${apiUrl}/auth/logout`, {}, { withCredentials: true })
-      if (resp.data.status === "success") {
-        setLogOut()
-        navigate("/login")
-      }
-    } catch (error) {
-      console.error("Error logging out:", error)
-      setLogOut()
-      navigate("/login")
+      // Revokes the refresh token server-side; logout used to only delete a
+      // cookie, leaving the token valid for anyone who had captured it.
+      await api.logout()
+    } catch {
+      /* clearing local state matters more than the round trip succeeding */
     }
+    setLogOut()
+    toast.success("Signed out.")
+    navigate("/login", { replace: true })
   }
 }

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import axios from "axios";
+import { api, ApiError } from "../lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import { User, Mail, Lock, ArrowRight, Loader2, CheckCircle2 } from "lucide-react";
@@ -37,11 +37,7 @@ const Signup = () => {
     setIsSubmitting(true);
 
     try {
-      const resp = await axios.post(`${import.meta.env.VITE_API_URL}/auth/signup`, {
-        name,
-        email,
-        password,
-      });
+      const resp = await api.signup(name, email, password);
 
       if (resp.data.status === "success") {
         toast.success("Account created! Redirecting to login…");

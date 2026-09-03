@@ -10,7 +10,7 @@ import AppHeader from "../components/AppHeader"
 import useAuthStore from "../store/authStore"
 import themeStore from "../store/themeStore"
 import useLogout from "../hooks/useLogout"
-import axios from "axios"
+import { api } from "../lib/api"
 
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 16 },
@@ -34,12 +34,11 @@ export default function Dashboard() {
   const [query, setQuery] = useState("")
 
   const navigate = useNavigate()
-  const apiUrl = import.meta.env.VITE_API_URL
 
   useEffect(() => {
     const fetchRecentCases = async () => {
       try {
-        const response = await axios.get(`${apiUrl}/user/debate`, { withCredentials: true })
+        const response = await api.listCases()
         if (response.data.status === "success") {
           setRecentCases(response.data.data)
         }
