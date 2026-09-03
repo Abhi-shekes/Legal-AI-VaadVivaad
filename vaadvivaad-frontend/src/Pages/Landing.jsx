@@ -4,8 +4,8 @@ import themeStore from '../store/themeStore';
 import { motion, useAnimation } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import {
-  Scale, Search, ShieldCheck, History, MessagesSquare, ArrowRight,
-  Sparkles, Radio, Archive, Gavel, Landmark, ClipboardList, FileText, Swords,
+  Search, ShieldCheck, History, MessagesSquare, ArrowRight,
+  Sparkles, Radio, Archive, Gavel, Landmark, ClipboardList, FileText, Swords, Zap,
 } from 'lucide-react';
 
 const EXHIBITS = [
@@ -13,29 +13,34 @@ const EXHIBITS = [
     id: '01',
     icon: MessagesSquare,
     title: 'AI-simulated debate',
-    body: 'Two AI counsel argue your case live, in real time, over Socket.IO — one for, one against.',
+    body: 'Two AI counsel argue your case live, in real time — one for, one against. No canned responses, no scripted flow.',
     tag: 'Real-time',
+    big: true,
+    span: 'lg:col-span-2 lg:row-span-2',
   },
   {
     id: '02',
     icon: Search,
     title: 'Precedent & IPC search',
-    body: 'Semantic search over case law and IPC sections grounds every argument in something citable.',
+    body: 'Semantic vector search over case law and IPC sections grounds every argument in something citable.',
     tag: 'Semantic search',
+    span: 'lg:col-span-2 lg:row-span-1',
   },
   {
     id: '03',
     icon: ShieldCheck,
     title: 'Evidence guidance',
-    body: 'Typical evidence for the relevant IPC section is surfaced alongside the arguments.',
+    body: 'Typical evidence for the relevant IPC section, auto-surfaced alongside the arguments.',
     tag: 'Auto-surfaced',
+    span: 'lg:col-span-1 lg:row-span-1',
   },
   {
     id: '04',
     icon: History,
     title: 'Case history',
-    body: 'Every debate is saved to your dashboard — round by round, ready to revisit.',
+    body: 'Every debate persisted to your dashboard — round by round, ready to revisit.',
     tag: 'Persistent',
+    span: 'lg:col-span-1 lg:row-span-1',
   },
 ];
 
@@ -102,6 +107,16 @@ const PIPELINE = [
   },
 ];
 
+const STATS = [
+  { value: '2', label: 'AI counsel, one live exchange' },
+  { value: '6', label: 'Stage retrieval-augmented pipeline' },
+  { value: 'LIVE', label: 'Every round streamed, never batched' },
+];
+
+const MARQUEE_ITEMS = [
+  'GEMINI', 'QDRANT VECTOR SEARCH', 'SOCKET.IO', 'MONGODB', 'RETRIEVAL-AUGMENTED GENERATION', 'ADVERSARIAL AI', 'REAL-TIME STREAMING',
+];
+
 const FAQS = [
   {
     q: 'Is this legal advice?',
@@ -153,12 +168,28 @@ const Landing = () => {
   const faint = dark ? 'text-gray-500' : 'text-ink-blue/50';
 
   return (
-    <div className={`min-h-screen flex flex-col ${dark ? 'bg-ink text-white' : 'bg-parchment text-ink-blue'}`}>
+    <div className={`min-h-screen flex flex-col overflow-x-hidden ${dark ? 'bg-ink text-white' : 'bg-parchment text-ink-blue'}`}>
       {/* ---------- Hero ---------- */}
-      <section className="pt-28 md:pt-36 lg:pt-44 pb-16 md:pb-24 px-4 sm:px-6 md:px-10 lg:px-20 relative overflow-hidden">
-        {/* faint dot-grid texture, matches auth pages */}
+      <section className="pt-28 md:pt-36 lg:pt-44 pb-16 md:pb-20 px-4 sm:px-6 md:px-10 lg:px-20 relative overflow-hidden">
+        {/* aurora glow field */}
+        <motion.div
+          className="absolute -top-32 left-1/4 w-[36rem] h-[36rem] rounded-full bg-brass/25 blur-[120px] pointer-events-none"
+          animate={{ x: [0, 40, 0], y: [0, 30, 0], scale: [1, 1.15, 1] }}
+          transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <motion.div
+          className="absolute top-10 right-1/4 w-[30rem] h-[30rem] rounded-full bg-verdict/20 blur-[110px] pointer-events-none"
+          animate={{ x: [0, -30, 0], y: [0, 40, 0], scale: [1, 1.1, 1] }}
+          transition={{ duration: 16, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
+        />
+        <motion.div
+          className="absolute bottom-0 left-1/3 w-[26rem] h-[26rem] rounded-full bg-dissent/15 blur-[100px] pointer-events-none"
+          animate={{ x: [0, 30, 0], y: [0, -20, 0] }}
+          transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
+        />
+        {/* dot-grid texture */}
         <div
-          className="absolute inset-0 opacity-[0.06] pointer-events-none"
+          className="absolute inset-0 opacity-[0.05] pointer-events-none"
           style={{
             backgroundImage: `radial-gradient(${dark ? '#fff' : '#1B2A4A'} 1px, transparent 1px)`,
             backgroundSize: '28px 28px',
@@ -166,40 +197,46 @@ const Landing = () => {
         />
 
         <div className="w-full max-w-7xl mx-auto relative z-10 text-center">
-          <motion.p
+          <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className={`docket-label text-xs mb-5 ${faint}`}
+            className={`inline-flex items-center gap-2 rounded-full px-4 py-1.5 mb-7 border ${dark ? 'border-brass/30 bg-brass/[0.06]' : 'border-brass/30 bg-brass/[0.08]'}`}
           >
-            In the matter of — an AI-adjudicated debate
-          </motion.p>
+            <Zap size={12} className="text-brass" />
+            <span className="docket-label text-[10px] sm:text-[11px] text-brass">
+              AI-native · Real-time · Retrieval-augmented
+            </span>
+          </motion.div>
 
           <motion.h1
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="font-display text-4xl sm:text-5xl md:text-6xl leading-[1.05] mb-5"
+            className="font-display text-5xl sm:text-6xl md:text-7xl lg:text-8xl leading-[1.02] mb-6 tracking-tight"
           >
-            Where arguments meet <span className="text-brass">intelligence.</span>
+            Where arguments meet
+            <br />
+            <span className="gradient-text">intelligence.</span>
           </motion.h1>
 
           <motion.p
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className={`text-base sm:text-lg max-w-2xl mx-auto mb-12 ${muted}`}
+            className={`text-base sm:text-lg md:text-xl max-w-2xl mx-auto mb-12 ${muted}`}
           >
-            Submit a case. Watch it argued from both sides — grounded in IPC sections and precedent, not just opinion.
+            Submit a case. Watch a next-gen AI courtroom argue it from both sides —
+            grounded in IPC sections and precedent, not just opinion.
           </motion.p>
 
           {/* Exhibit A / Exhibit B live argument preview */}
-          <div className="grid sm:grid-cols-2 gap-4 md:gap-5 text-left max-w-4xl mx-auto mb-10">
+          <div className="grid sm:grid-cols-2 gap-4 md:gap-5 text-left max-w-4xl mx-auto mb-14">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.35 }}
-              className={`rounded-lg p-5 border-t-2 border-verdict ${dark ? 'bg-white/[0.03] border-x border-b border-white/10' : 'bg-white border-x border-b border-ink-blue/10'}`}
+              className={`rounded-xl p-5 md:p-6 border-t-2 border-verdict shadow-[0_0_40px_-12px_rgba(62,142,99,0.5)] ${dark ? 'bg-white/[0.04] border-x border-b border-white/10' : 'bg-white border-x border-b border-ink-blue/10'}`}
             >
               <p className="docket-label text-[11px] text-verdict mb-2.5">Exhibit A · For</p>
               <p className={`text-sm leading-relaxed ${dark ? 'text-gray-300' : 'text-ink-blue/75'}`}>
@@ -211,7 +248,7 @@ const Landing = () => {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.55 }}
-              className={`rounded-lg p-5 border-t-2 border-dissent ${dark ? 'bg-white/[0.03] border-x border-b border-white/10' : 'bg-white border-x border-b border-ink-blue/10'}`}
+              className={`rounded-xl p-5 md:p-6 border-t-2 border-dissent shadow-[0_0_40px_-12px_rgba(166,61,61,0.5)] ${dark ? 'bg-white/[0.04] border-x border-b border-white/10' : 'bg-white border-x border-b border-ink-blue/10'}`}
             >
               <p className="docket-label text-[11px] text-dissent mb-2.5">Exhibit B · Against</p>
               <p className={`text-sm leading-relaxed ${dark ? 'text-gray-300' : 'text-ink-blue/75'}`}>
@@ -220,59 +257,102 @@ const Landing = () => {
             </motion.div>
           </div>
 
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.7 }}
-            className={`font-mono text-[11px] mb-8 ${dark ? 'text-gray-600' : 'text-ink-blue/35'}`}
-          >
-            Sample exchange — every real debate is generated fresh for your case.
-          </motion.p>
-
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.8 }}
+            transition={{ duration: 0.5, delay: 0.75 }}
+            className="mb-14"
           >
             <motion.button
-              whileHover={{ scale: 1.03 }}
+              whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.97 }}
               onClick={() => navigate('/signup')}
-              className="inline-flex items-center gap-2 bg-brass text-ink font-semibold py-3.5 px-7 rounded-full shadow-lg transition-colors hover:bg-brass/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-brass focus-visible:ring-offset-2"
+              className="relative inline-flex items-center gap-2 bg-brass text-ink font-semibold py-4 px-9 rounded-full text-base shadow-[0_0_50px_-8px_rgba(199,160,70,0.7)] transition-colors hover:bg-brass/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-brass focus-visible:ring-offset-2"
             >
               File your case
-              <ArrowRight size={16} />
+              <ArrowRight size={18} />
             </motion.button>
+            <p className={`font-mono text-[11px] mt-4 ${dark ? 'text-gray-600' : 'text-ink-blue/35'}`}>
+              Sample exchange above — every real debate is generated fresh for your case.
+            </p>
+          </motion.div>
+
+          {/* Big stat row */}
+          <motion.div
+            {...fadeUp(0.1)}
+            className="grid grid-cols-3 gap-4 md:gap-8 max-w-3xl mx-auto docket-rule pt-10"
+          >
+            {STATS.map((s) => (
+              <div key={s.label}>
+                <p className="font-display gradient-text text-4xl sm:text-5xl md:text-6xl mb-2 leading-none">
+                  {s.value}
+                </p>
+                <p className={`text-[11px] sm:text-xs leading-snug ${muted}`}>{s.label}</p>
+              </div>
+            ))}
           </motion.div>
         </div>
       </section>
 
-      {/* ---------- Features: docket ledger ---------- */}
+      {/* ---------- Marquee ---------- */}
+      <div className={`relative py-4 overflow-hidden border-y ${dark ? 'bg-white/[0.02] border-white/10' : 'bg-ink-blue border-ink-blue'}`}>
+        <div className="flex whitespace-nowrap animate-marquee">
+          {[...MARQUEE_ITEMS, ...MARQUEE_ITEMS, ...MARQUEE_ITEMS].map((item, i) => (
+            <span key={i} className="flex items-center font-mono text-xs tracking-widest text-white/50 mx-6">
+              {item}
+              <span className="text-brass mx-6">✦</span>
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* ---------- Features: bento grid ---------- */}
       <section id="features-section" className={`py-16 md:py-24 px-4 sm:px-6 md:px-10 ${dark ? 'bg-white/[0.02]' : 'bg-white'}`}>
         <div className="max-w-7xl mx-auto">
           <motion.div {...fadeUp()} className="mb-10 md:mb-14">
-            <p className={`docket-label text-xs mb-3 ${faint}`}>Docket · Capabilities</p>
-            <h2 className="font-display text-3xl md:text-4xl">What's on the record.</h2>
+            <p className={`docket-label text-xs mb-3 ${faint}`}>Core capabilities</p>
+            <h2 className="font-display text-4xl md:text-5xl">What's on the record.</h2>
           </motion.div>
 
-          <motion.div ref={ref} variants={containerVariants} initial="hidden" animate={controls}>
-            {EXHIBITS.map((f, i) => (
+          <motion.div
+            ref={ref}
+            variants={containerVariants}
+            initial="hidden"
+            animate={controls}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 lg:grid-rows-2 gap-5"
+          >
+            {EXHIBITS.map((f) => (
               <motion.div
                 key={f.id}
                 variants={itemVariants}
-                className={`flex items-center gap-5 md:gap-8 py-6 md:py-7 ${i !== 0 ? 'docket-rule' : ''}`}
+                className={`relative overflow-hidden rounded-2xl p-6 md:p-8 border transition-all duration-300 hover:-translate-y-1 ${f.span} ${dark
+                  ? 'bg-white/[0.03] border-white/10 hover:border-brass/40 hover:shadow-[0_0_50px_-15px_rgba(199,160,70,0.4)]'
+                  : 'bg-white border-ink-blue/10 shadow-sm hover:border-brass/40 hover:shadow-[0_0_50px_-15px_rgba(199,160,70,0.3)]'
+                }`}
               >
-                <span className={`font-mono text-xs flex-shrink-0 w-8 ${dark ? 'text-gray-600' : 'text-ink-blue/35'}`}>
-                  {f.id}
-                </span>
-                <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center ${dark ? 'bg-brass/10 text-brass' : 'bg-ink-blue/5 text-ink-blue'}`}>
-                  <f.icon size={18} />
+                {f.big && (
+                  <f.icon
+                    size={260}
+                    strokeWidth={1}
+                    className={`absolute -bottom-12 -right-12 pointer-events-none ${dark ? 'text-white/[0.04]' : 'text-ink-blue/[0.04]'}`}
+                  />
+                )}
+                <span className={`font-mono text-xs ${dark ? 'text-gray-600' : 'text-ink-blue/35'}`}>{f.id}</span>
+                <div className={`relative w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center mt-4 mb-5 ${dark ? 'bg-brass/10 text-brass' : 'bg-ink-blue/5 text-ink-blue'}`}>
+                  <f.icon size={f.big ? 26 : 20} />
                 </div>
-                <div className="flex-grow min-w-0">
-                  <h3 className="font-semibold text-lg mb-1">{f.title}</h3>
-                  <p className={`text-sm leading-relaxed max-w-xl ${muted}`}>{f.body}</p>
-                </div>
-                <span className={`docket-label hidden md:block text-[10px] flex-shrink-0 ${faint}`}>
+                <h3 className={`relative font-display ${f.big ? 'text-2xl md:text-3xl' : 'text-xl'} mb-3`}>{f.title}</h3>
+                <p className={`relative text-sm leading-relaxed ${muted} ${f.big ? 'max-w-sm' : ''}`}>{f.body}</p>
+                {f.big && (
+                  <div className="relative flex items-center gap-2 mt-8">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-verdict opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-verdict" />
+                    </span>
+                    <span className="docket-label text-[10px] text-verdict">Live now</span>
+                  </div>
+                )}
+                <span className={`docket-label absolute top-6 right-6 md:top-8 md:right-8 text-[10px] ${faint}`}>
                   {f.tag}
                 </span>
               </motion.div>
@@ -286,7 +366,7 @@ const Landing = () => {
         <div className="max-w-7xl mx-auto">
           <motion.div {...fadeUp()} className="mb-10 md:mb-14 text-center">
             <p className={`docket-label text-xs mb-3 ${faint}`}>Evidentiary basis</p>
-            <h2 className="font-display text-3xl md:text-4xl mb-4">Every argument cites something real.</h2>
+            <h2 className="font-display text-4xl md:text-5xl mb-4">Every argument cites something real.</h2>
             <p className={`max-w-2xl mx-auto text-sm md:text-base ${muted}`}>
               Not a paraphrase of the law — the actual record it was pulled from.
             </p>
@@ -296,7 +376,7 @@ const Landing = () => {
             {/* IPC specimen */}
             <motion.div
               {...fadeUp(0.05)}
-              className={`rounded-xl p-6 md:p-7 border ${dark ? 'bg-white/[0.03] border-white/10' : 'bg-white border-ink-blue/10 shadow-sm'}`}
+              className={`rounded-xl p-6 md:p-7 border transition-shadow hover:shadow-[0_0_40px_-15px_rgba(199,160,70,0.5)] ${dark ? 'bg-white/[0.03] border-white/10' : 'bg-white border-ink-blue/10 shadow-sm'}`}
             >
               <div className="flex items-center gap-2.5 mb-5">
                 <Gavel size={16} className="text-brass" />
@@ -318,7 +398,7 @@ const Landing = () => {
             {/* Precedent specimen */}
             <motion.div
               {...fadeUp(0.15)}
-              className={`rounded-xl p-6 md:p-7 border ${dark ? 'bg-white/[0.03] border-white/10' : 'bg-white border-ink-blue/10 shadow-sm'}`}
+              className={`rounded-xl p-6 md:p-7 border transition-shadow hover:shadow-[0_0_40px_-15px_rgba(62,142,99,0.5)] ${dark ? 'bg-white/[0.03] border-white/10' : 'bg-white border-ink-blue/10 shadow-sm'}`}
             >
               <div className="flex items-center gap-2.5 mb-5">
                 <Landmark size={16} className="text-brass" />
@@ -338,7 +418,7 @@ const Landing = () => {
                     whileInView={{ width: '82%' }}
                     viewport={{ once: true }}
                     transition={{ duration: 1, delay: 0.3, ease: 'easeOut' }}
-                    className="h-full bg-brass rounded-full"
+                    className="h-full bg-gradient-to-r from-verdict to-brass rounded-full"
                   />
                 </div>
               </div>
@@ -347,7 +427,7 @@ const Landing = () => {
             {/* Evidence specimen */}
             <motion.div
               {...fadeUp(0.25)}
-              className={`rounded-xl p-6 md:p-7 border ${dark ? 'bg-white/[0.03] border-white/10' : 'bg-white border-ink-blue/10 shadow-sm'}`}
+              className={`rounded-xl p-6 md:p-7 border transition-shadow hover:shadow-[0_0_40px_-15px_rgba(166,61,61,0.5)] ${dark ? 'bg-white/[0.03] border-white/10' : 'bg-white border-ink-blue/10 shadow-sm'}`}
             >
               <div className="flex items-center gap-2.5 mb-5">
                 <ClipboardList size={16} className="text-brass" />
@@ -376,23 +456,23 @@ const Landing = () => {
       </section>
 
       {/* ---------- How it works ---------- */}
-      <section className={`py-16 md:py-24 px-4 sm:px-6 md:px-10 ${dark ? 'bg-white/[0.02]' : 'bg-white'}`}>
+      <section className={`py-16 md:py-24 px-4 sm:px-6 md:px-10 overflow-hidden ${dark ? 'bg-white/[0.02]' : 'bg-white'}`}>
         <div className="max-w-7xl mx-auto">
           <motion.div {...fadeUp()} className="mb-14 md:mb-16 text-center">
             <p className={`docket-label text-xs mb-3 ${faint}`}>Procedure</p>
-            <h2 className="font-display text-3xl md:text-4xl">How a debate unfolds.</h2>
+            <h2 className="font-display text-4xl md:text-5xl">How a debate unfolds.</h2>
           </motion.div>
 
-          <div className="relative grid md:grid-cols-3 gap-10 md:gap-6">
+          <div className="relative grid md:grid-cols-3 gap-14 md:gap-6">
             {/* connecting line, desktop only */}
-            <div className={`hidden md:block absolute top-6 left-0 right-0 h-px ${dark ? 'bg-white/10' : 'bg-ink-blue/10'}`}>
+            <div className={`hidden md:block absolute top-9 left-0 right-0 h-px ${dark ? 'bg-white/10' : 'bg-ink-blue/10'}`}>
               <motion.div
                 initial={{ scaleX: 0 }}
                 whileInView={{ scaleX: 1 }}
                 viewport={{ once: true }}
                 transition={{ duration: 1.1, ease: 'easeInOut' }}
                 style={{ originX: 0 }}
-                className="h-full bg-brass"
+                className="h-full bg-gradient-to-r from-verdict via-brass to-dissent"
               />
             </div>
 
@@ -405,10 +485,10 @@ const Landing = () => {
                 transition={{ duration: 0.5, delay: i * 0.15 }}
                 className="relative"
               >
-                <div className={`relative z-10 w-12 h-12 rounded-full flex items-center justify-center font-display text-lg mb-4 ${dark ? 'bg-ink border border-brass/40 text-brass' : 'bg-parchment border border-brass/40 text-brass'}`}>
+                <div className={`relative z-10 w-[72px] h-[72px] rounded-full flex items-center justify-center font-display text-2xl mb-5 border-2 border-brass shadow-[0_0_35px_-8px_rgba(199,160,70,0.6)] ${dark ? 'bg-ink text-brass' : 'bg-parchment text-brass'}`}>
                   {s.n}
                 </div>
-                <h3 className="font-semibold text-lg mb-2">{s.title}</h3>
+                <h3 className="font-display text-xl mb-2">{s.title}</h3>
                 <p className={`text-sm leading-relaxed ${muted}`}>{s.body}</p>
               </motion.div>
             ))}
@@ -421,7 +501,7 @@ const Landing = () => {
         <div className="max-w-7xl mx-auto">
           <motion.div {...fadeUp()} className="mb-6 text-center">
             <p className={`docket-label text-xs mb-3 ${faint}`}>System architecture</p>
-            <h2 className="font-display text-3xl md:text-4xl mb-4">No black box.</h2>
+            <h2 className="font-display text-4xl md:text-5xl mb-4">No black box.</h2>
             <p className={`max-w-2xl mx-auto text-sm md:text-base ${muted}`}>
               A retrieval-augmented, adversarial debate pipeline — every stage inspectable, nothing hidden behind one opaque prompt.
             </p>
@@ -429,7 +509,7 @@ const Landing = () => {
 
           <div className="relative mt-14 md:mt-16">
             {/* connecting flow line — single row only from xl up */}
-            <div className={`hidden xl:block absolute top-8 left-[6%] right-[6%] h-px ${dark ? 'bg-white/10' : 'bg-ink-blue/10'}`}>
+            <div className={`hidden xl:block absolute top-9 left-[6%] right-[6%] h-px ${dark ? 'bg-white/10' : 'bg-ink-blue/10'}`}>
               <motion.div
                 initial={{ scaleX: 0 }}
                 whileInView={{ scaleX: 1 }}
@@ -450,8 +530,8 @@ const Landing = () => {
                   transition={{ duration: 0.5, delay: i * 0.1 }}
                   className="relative flex flex-col items-center text-center px-2"
                 >
-                  <div className={`relative z-10 w-16 h-16 rounded-2xl flex items-center justify-center mb-4 border ${dark ? 'bg-ink border-brass/30 text-brass' : 'bg-parchment border-brass/30 text-brass'}`}>
-                    <s.icon size={22} />
+                  <div className={`relative z-10 w-[72px] h-[72px] rounded-2xl flex items-center justify-center mb-4 border shadow-[0_0_30px_-10px_rgba(199,160,70,0.5)] ${dark ? 'bg-ink border-brass/40 text-brass' : 'bg-parchment border-brass/40 text-brass'}`}>
+                    <s.icon size={26} />
                   </div>
                   <p className={`font-mono text-[10px] tracking-wide mb-1.5 ${faint}`}>
                     {s.stage} · {s.tag}
@@ -470,7 +550,7 @@ const Landing = () => {
         <div className="max-w-7xl mx-auto">
           <motion.div {...fadeUp()} className="mb-10 md:mb-14">
             <p className={`docket-label text-xs mb-3 ${faint}`}>Before you file</p>
-            <h2 className="font-display text-3xl md:text-4xl">Questions worth asking.</h2>
+            <h2 className="font-display text-4xl md:text-5xl">Questions worth asking.</h2>
           </motion.div>
 
           <div className="grid md:grid-cols-2 gap-4 md:gap-5">
@@ -495,18 +575,31 @@ const Landing = () => {
       </section>
 
       {/* ---------- CTA ---------- */}
-      <section className="py-20 md:py-28 px-4 sm:px-6 md:px-10 relative overflow-hidden bg-ink-blue">
-        <div className="absolute -top-20 -left-20 w-72 h-72 rounded-full bg-verdict/20 blur-3xl" />
-        <div className="absolute -bottom-24 -right-16 w-80 h-80 rounded-full bg-dissent/20 blur-3xl" />
+      <section className="py-24 md:py-36 px-4 sm:px-6 md:px-10 relative overflow-hidden bg-ink-blue">
+        <motion.div
+          className="absolute -top-32 -left-20 w-[28rem] h-[28rem] rounded-full bg-verdict/25 blur-[110px]"
+          animate={{ scale: [1, 1.2, 1] }}
+          transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <motion.div
+          className="absolute -bottom-32 -right-20 w-[32rem] h-[32rem] rounded-full bg-dissent/25 blur-[110px]"
+          animate={{ scale: [1, 1.25, 1] }}
+          transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
+        />
+        <motion.div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[24rem] h-[24rem] rounded-full bg-brass/15 blur-[100px]"
+          animate={{ scale: [1, 1.15, 1] }}
+          transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut' }}
+        />
 
         <motion.div
           initial={{ opacity: 0, scale: 0.8, rotate: -8 }}
           whileInView={{ opacity: 1, scale: 1, rotate: -8 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="hidden md:flex absolute top-10 right-10 lg:right-24 w-24 h-24 rounded-full border-2 border-brass/40 items-center justify-center text-center"
+          className="hidden md:flex absolute top-14 right-14 lg:right-28 w-28 h-28 rounded-full border-2 border-brass/50 items-center justify-center text-center shadow-[0_0_40px_-8px_rgba(199,160,70,0.6)]"
         >
-          <span className="font-mono text-[8px] tracking-widest text-brass/70 leading-tight px-2">
+          <span className="font-mono text-[9px] tracking-widest text-brass/80 leading-tight px-2">
             AI · ADJUDICATED · DEBATE
           </span>
         </motion.div>
@@ -518,18 +611,19 @@ const Landing = () => {
           transition={{ duration: 0.7 }}
           className="max-w-3xl mx-auto text-center relative z-10 text-white"
         >
-          <h2 className="font-display text-3xl md:text-4xl mb-4">Ready to file?</h2>
-          <p className="text-base md:text-lg text-blue-100/70 mb-8">
-            Submit your first case and see both sides argued in minutes.
+          <p className="docket-label text-xs text-brass mb-5">Next-gen legal intelligence</p>
+          <h2 className="font-display text-4xl sm:text-5xl md:text-6xl mb-5 leading-tight">Ready to file?</h2>
+          <p className="text-base md:text-xl text-blue-100/70 mb-10">
+            Submit your first case and see both sides argued — live, in minutes.
           </p>
           <motion.button
-            whileHover={{ scale: 1.03 }}
+            whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.97 }}
             onClick={() => navigate('/signup')}
-            className="inline-flex items-center gap-2 bg-brass text-ink font-semibold py-3.5 px-8 rounded-full shadow-lg transition-colors hover:bg-brass/90"
+            className="inline-flex items-center gap-2 bg-brass text-ink font-semibold py-4 px-10 rounded-full text-base md:text-lg shadow-[0_0_60px_-10px_rgba(199,160,70,0.8)] transition-colors hover:bg-brass/90"
           >
             Create your account
-            <ArrowRight size={16} />
+            <ArrowRight size={18} />
           </motion.button>
         </motion.div>
       </section>
