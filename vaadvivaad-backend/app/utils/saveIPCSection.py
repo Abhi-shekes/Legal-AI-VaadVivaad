@@ -89,6 +89,9 @@ def prepare_section_document(section: Dict) -> Document:
 
 def saveIPCSection(section_data: Dict):
     """Store a single IPC section in Qdrant"""
+    if not section_data:
+        print("Skipping save: no IPC section data to store")
+        return
     try:
         document = prepare_section_document(section_data)
         _get_vector_store().add_documents(documents=[document])

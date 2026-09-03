@@ -44,8 +44,10 @@ def prepare_evidence_document(evidence: Dict) -> Document:
 
 def saveIPCEvidence(evidence_data: Dict):
     """Store a single evidence type preserving original table structure"""
+    if not evidence_data:
+        print("Skipping save: no evidence data to store")
+        return
     try:
-
         document = prepare_evidence_document(evidence_data)
         _get_vector_store().add_documents(documents=[document])
         print(f"Stored evidence for {evidence_data.get('crime_type', 'unknown')} (IPC: {evidence_data.get('ipc_section', '')})")

@@ -8,6 +8,7 @@ def get_similar_cases_for_section(ipc_section: str):
     case = GENERATE_INFORMATION_OF_CASE(ipc_section, draft_similar_cases_prompt)
 
     ## Save the Generated JSON to Qdrant
-    saveSimilarCases(case[0])
+    if case and len(case) > 0:
+        saveSimilarCases(case[0])
     return case
   

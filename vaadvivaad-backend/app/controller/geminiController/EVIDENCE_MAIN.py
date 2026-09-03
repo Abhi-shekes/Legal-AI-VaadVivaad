@@ -7,10 +7,8 @@ from app.utils.saveIPCEvidence import saveIPCEvidence
 def generate_evidence_for_section(ipc_section: str):
 
     evidence = GENERATE_INFORMATION_OF_CASE(ipc_section, draft_evidence_prompt)
-    # print(evidence)
-    # saveIPCEvidence( if type(evidence) == list if len(evidence) > 0 if evidence[0] : evidence : evidence)
 
-    if len(evidence)>0 :
+    if evidence and len(evidence) > 0:
         saveIPCEvidence(evidence[0])
 
     # saveIPCEvidence(evidence[0] if len(evidence) > 0 else evidence)

@@ -8,7 +8,8 @@ def generate_ipc_section(user_prompt:str):
 
 def generate_ipc_section_desc(ipc_section: str):
     ipc_section = GENERATE_INFORMATION_OF_CASE(ipc_section, draft_section_desc_prompt)
-    saveIPCSection(ipc_section)
+    if ipc_section:
+        saveIPCSection(ipc_section)
     return ipc_section
 
 

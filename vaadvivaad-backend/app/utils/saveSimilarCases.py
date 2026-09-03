@@ -52,6 +52,9 @@ def saveSimilarCases(case_data: Dict) -> bool:
     Returns:
         bool: True if successful, False otherwise
     """
+    if not case_data:
+        print("Skipping save: no case data to store")
+        return False
     try:
         # Prepare document for insertion
         document = prepare_case_document(case_data)

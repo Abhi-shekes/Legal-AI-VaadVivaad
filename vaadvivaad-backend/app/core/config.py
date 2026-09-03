@@ -22,7 +22,12 @@ class Settings(BaseSettings):
     # the "-latest" alias rather than a pinned version (e.g. "gemini-2.5-flash")
     # on purpose: pinned model names get sunset by Google and start 404ing
     # with no warning (that's exactly what happened here -- see git history).
-    GEMINI_MODEL: str = "gemini-flash-latest"
+    # The "flash-lite" tier specifically: a single debate makes ~6-7
+    # sequential Gemini calls (prompt refinement, IPC section, precedent,
+    # evidence, then N argument rounds), and the full "flash" tier's free
+    # quota is only 5 requests/minute -- not enough to finish one debate.
+    # flash-lite's free quota comfortably covers a full run.
+    GEMINI_MODEL: str = "gemini-flash-lite-latest"
 
     # Embedding model used to vectorize text before storing/searching in
     # Qdrant. Gemini's embedding endpoint, not a separate service, since

@@ -257,6 +257,11 @@ async def run_debate_flow(session_id: str):
         print(f"Error in debate flow for {session_id}: {e}")
         traceback.print_exc()
         await send_to_ui(session_id, "error", {"message": f"An unexpected server error occurred: {str(e)}"})
+        # Without this, the frontend never learns the flow ended -- it only
+        # resets isSubmitting/isDebateConcluded on "debate_concluded" or
+        # "debate_failed", so a mid-flow crash left the UI stuck forever
+        # (submit button disabled, no way to retry short of a page reload).
+        await send_to_ui(session_id, "debate_failed", {"message": str(e)})
     finally:
         # Clean up data after the flow is complete
         if session_id in case_data_store:
@@ -343,13 +348,19 @@ async def get_debate(user: dict = Depends(is_logged_in)):
 
         result = []
         for debate in debates:
-            # Safely extract case name
+            # Safely extract case name. similar_case has two possible shapes
+            # depending on which path produced it: {"case": {"case_name": ...}}
+            # from a real Qdrant match, or a flat {"case_id_name": ...} object
+            # straight from Gemini when nothing was found in Qdrant to match
+            # against (currently the only path, since Qdrant starts empty).
             title = "Unknown Case"
             similar_case = debate.get("similar_case")
             if similar_case and isinstance(similar_case, dict):
                 case_info = similar_case.get("case")
-                if case_info and isinstance(case_info, dict):
-                    title = case_info.get("case_name", "Unknown Case")
+                if case_info and isinstance(case_info, dict) and case_info.get("case_name"):
+                    title = case_info["case_name"]
+                elif similar_case.get("case_id_name"):
+                    title = similar_case["case_id_name"]
             
             result.append({
                 "id": str(debate["_id"]),
