@@ -3,7 +3,7 @@ from jose import JWTError, jwt
 from app.core.config import settings
 
 SECRET_KEY = settings.JWT_SECRET_KEY
-ALGORITHM = "HS256"
+ALGORITHM = settings.JWT_ALGORITHM
 
 async def is_logged_in(request: Request):
     token = request.cookies.get("token")

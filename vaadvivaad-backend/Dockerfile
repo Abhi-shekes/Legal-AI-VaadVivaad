@@ -1,20 +1,30 @@
-# Dockerfile
+# syntax=docker/dockerfile:1
 FROM python:3.11-slim
 
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
 
-# Set working directory
 WORKDIR /app
 
+# Install dependencies first for better layer caching
 COPY requirements.txt .
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
 COPY . .
 
-# Expose FastAPI port
+# Run as a non-root user
+RUN groupadd --gid 1001 vaadvivaad \
+    && useradd --uid 1001 --gid vaadvivaad --no-create-home --shell /usr/sbin/nologin vaadvivaad \
+    && chown -R vaadvivaad:vaadvivaad /app
+USER vaadvivaad
+
 EXPOSE 8000
 
-# Run the FastAPI server
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=5 \
+    CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3).status == 200 else 1)"
+
+# Run the FastAPI server wrapped with the Socket.IO ASGI app (sio_app),
+# NOT the bare "app" object -- otherwise the /socket.io debate endpoints
+# never get mounted.
+CMD ["uvicorn", "app.main:sio_app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]

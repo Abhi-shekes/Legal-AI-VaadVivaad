@@ -1,12 +1,18 @@
+import os
 import socketio
 
 
+_extra_origins = [
+    o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()
+]
+
 origins = [
-    "http://localhost:5173",  # Your Vite/React frontend
+    "http://localhost:5173",  # Vite dev server
     "http://localhost:3000",  # Another common port for React
-    # IMPORTANT: Add your deployed Render frontend URL here later!
-    # "https://your-app-name.onrender.com"
-    "https://vaad-vivaad-app.onrender.com"
+    "http://localhost:8081",  # Dockerized frontend (nginx)
+    "https://vaad-vivaad-app.onrender.com",
+    "https://nyayapravah.info",
+    *_extra_origins,
 ]
 
 sio = socketio.AsyncServer(

@@ -1,24 +1,27 @@
-from langchain_astradb import AstraDBVectorStore
-from astrapy.info import VectorServiceOptions
 from langchain_core.documents import Document
-from app.core.config import settings
+from langchain_qdrant import QdrantVectorStore
 import json
 import argparse
 from typing import Dict
 
+from app.core.embeddings import GeminiEmbeddings
+from app.core.qdrant_client import ensure_collection, get_qdrant_client
 
+COLLECTION_NAME = "evidence_type"
 
-# Initialize vector store
-vector_store = AstraDBVectorStore(
-    collection_name="evidence_type",
-    api_endpoint=settings.ASTRA_DB_API_ENDPOINT,
-    token=settings.ASTRA_DB_APPLICATION_TOKEN,
-    namespace=settings.ASTRA_DB_KEYSPACE,
-    collection_vector_service_options=VectorServiceOptions(
-        provider="nvidia",
-        model_name="NV-Embed-QA",
-    ),
-)
+# Initialize vector store lazily so the app can boot without a reachable Qdrant instance
+_vector_store = None
+
+def _get_vector_store():
+    global _vector_store
+    if _vector_store is None:
+        ensure_collection(COLLECTION_NAME)
+        _vector_store = QdrantVectorStore(
+            client=get_qdrant_client(),
+            collection_name=COLLECTION_NAME,
+            embedding=GeminiEmbeddings(),
+        )
+    return _vector_store
 
 
 def prepare_evidence_document(evidence: Dict) -> Document:
@@ -44,7 +47,7 @@ def saveIPCEvidence(evidence_data: Dict):
     try:
 
         document = prepare_evidence_document(evidence_data)
-        vector_store.add_documents(documents=[document])
+        _get_vector_store().add_documents(documents=[document])
         print(f"Stored evidence for {evidence_data.get('crime_type', 'unknown')} (IPC: {evidence_data.get('ipc_section', '')})")
     except Exception as e:
         print(f"Error storing evidence: {str(e)}")

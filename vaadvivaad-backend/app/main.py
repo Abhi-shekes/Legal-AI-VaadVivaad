@@ -17,7 +17,18 @@ from app.api.routes import auth, vectordb, user, gemini
 
 # 3. Create the main FastAPI app instance.
 # We will configure this object fully before anything else.
-app = FastAPI(title="VaadVivaadBakend")
+app = FastAPI(
+    title="VaadVivaad API",
+    description="AI-simulated legal debate platform: case intake, "
+                 "precedent/IPC vector search, and Gemini-generated "
+                 "argument debates over Socket.IO.",
+    version="1.0.0",
+)
+
+
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}
 
 
 # 4. Add all middleware to the app instance.

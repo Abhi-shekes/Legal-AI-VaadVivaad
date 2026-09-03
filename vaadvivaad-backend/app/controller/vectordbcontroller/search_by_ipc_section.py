@@ -1,21 +1,28 @@
-from langchain_astradb import AstraDBVectorStore
-from astrapy.info import VectorServiceOptions
-from langchain_core.documents import Document
-from typing import List, Dict, Any, Optional
-from app.core.config import settings
-import os
-import re
+from typing import List, Dict, Any
 
-vector_store = AstraDBVectorStore(
-    collection_name="ipc_sections",
-    api_endpoint=settings.ASTRA_DB_API_ENDPOINT,
-    token=settings.ASTRA_DB_APPLICATION_TOKEN,
-    namespace=settings.ASTRA_DB_KEYSPACE,
-    collection_vector_service_options=VectorServiceOptions(
-        provider="nvidia",
-        model_name="NV-Embed-QA",
-    ),
-)
+from langchain_core.documents import Document
+from langchain_qdrant import QdrantVectorStore
+from qdrant_client.http import models as qdrant_models
+
+from app.core.embeddings import GeminiEmbeddings
+from app.core.qdrant_client import ensure_collection, get_qdrant_client
+
+COLLECTION_NAME = "ipc_sections"
+
+_vector_store = None
+
+
+def _get_vector_store():
+    global _vector_store
+    if _vector_store is None:
+        ensure_collection(COLLECTION_NAME)
+        _vector_store = QdrantVectorStore(
+            client=get_qdrant_client(),
+            collection_name=COLLECTION_NAME,
+            embedding=GeminiEmbeddings(),
+        )
+    return _vector_store
+
 
 def search_by_ipc_section(section: str) -> List[Dict[str, Any]]:
     """
@@ -23,29 +30,33 @@ def search_by_ipc_section(section: str) -> List[Dict[str, Any]]:
     Handles case sensitivity and whitespace
     """
     try:
+        vector_store = _get_vector_store()
         # Normalize the section number by removing spaces
         normalized_section = section.replace(" ", "")
-       
+
         # Perform exact match in metadata
         results = vector_store.similarity_search(
             query=f"IPC Section {normalized_section}",
             k=1,
-            filter={"section_number": {"$eq": normalized_section}}
+            filter=qdrant_models.Filter(
+                must=[
+                    qdrant_models.FieldCondition(
+                        key="metadata.section_number",
+                        match=qdrant_models.MatchValue(value=normalized_section),
+                    )
+                ]
+            ),
         )
 
         if not results:
             print("No results found for section:", normalized_section)
             return []
-        
+
         # print("Search results:", results)  # Debugging print
         return format_ipc_results(results)  # Pass the entire list
-    
+
     except Exception as e:
-        error_message = str(e)
-        if "COLLECTION_NOT_EXIST" in error_message or "collection name: case_laws" in error_message:
-            print("Collection does not exist, returning empty case list.")
-        else:
-            print(f"Error in vector search: {error_message}")
+        print(f"Error in vector search: {e}")
         return []  # Unified empty result for both collection-not-found and no match
 
 

@@ -7,7 +7,7 @@ def get_similar_cases_for_section(ipc_section: str):
   
     case = GENERATE_INFORMATION_OF_CASE(ipc_section, draft_similar_cases_prompt)
 
-    ## Save the Generated JSON To the Astra Db 
+    ## Save the Generated JSON to Qdrant
     saveSimilarCases(case[0])
     return case
   

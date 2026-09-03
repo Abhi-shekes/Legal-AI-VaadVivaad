@@ -1,35 +1,46 @@
-from langchain_astradb import AstraDBVectorStore
-from langchain_core.documents import Document
-from astrapy.info import VectorServiceOptions
-from app.core.config import settings
-from typing import List, Dict, Any
+from langchain_qdrant import QdrantVectorStore
+from qdrant_client.http import models as qdrant_models
+
+from app.core.embeddings import GeminiEmbeddings
+from app.core.qdrant_client import ensure_collection, get_qdrant_client
+
+COLLECTION_NAME = "case_laws"
+
+_vector_store = None
 
 
-vector_store = AstraDBVectorStore(
-    collection_name="case_laws",
-    api_endpoint=settings.ASTRA_DB_API_ENDPOINT,
-    token=settings.ASTRA_DB_APPLICATION_TOKEN,
-    namespace=settings.ASTRA_DB_KEYSPACE,
-    collection_vector_service_options=VectorServiceOptions(
-        provider="nvidia",
-        model_name="NV-Embed-QA",
-    ),
-)
-
+def _get_vector_store():
+    global _vector_store
+    if _vector_store is None:
+        ensure_collection(COLLECTION_NAME)
+        _vector_store = QdrantVectorStore(
+            client=get_qdrant_client(),
+            collection_name=COLLECTION_NAME,
+            embedding=GeminiEmbeddings(),
+        )
+    return _vector_store
 
 
 def find_similar_cases(incident_description: str):
     """
     Find similar cases with semantic search + optional metadata filter.
-    Returns [] if nothing matches or if collection does not exist.
+    Returns [] if nothing matches or if the collection is empty/unreachable.
     """
     try:
+        vector_store = _get_vector_store()
         results_with_scores = vector_store.similarity_search_with_score(
             query=incident_description,
             k=1,
-            filter={
-                "court": {"$in": ["Supreme Court of India", "High Court", "District Court", "N/A"]},
-            }
+            filter=qdrant_models.Filter(
+                must=[
+                    qdrant_models.FieldCondition(
+                        key="metadata.court",
+                        match=qdrant_models.MatchAny(
+                            any=["Supreme Court of India", "High Court", "District Court", "N/A"]
+                        ),
+                    )
+                ]
+            ),
         )
 
         similar_cases = []
@@ -41,13 +52,9 @@ def find_similar_cases(incident_description: str):
         return similar_cases
 
     except Exception as e:
-        error_message = str(e)
-        if "COLLECTION_NOT_EXIST" in error_message or "collection name: case_laws" in error_message:
-            print("Collection does not exist, returning empty case list.")
-        else:
-            print(f"Error in vector search: {error_message}")
+        print(f"Error in vector search: {e}")
         return []  # Unified empty result for both collection-not-found and no match
-    
+
 
 def format_case_details(case_data: dict) -> dict:
     return {
@@ -65,5 +72,3 @@ def format_case_details(case_data: dict) -> dict:
         "precedents": case_data.get("key_precedents_cited", []),
         "severity": case_data.get("severity", "N/A"),
     }
-
-

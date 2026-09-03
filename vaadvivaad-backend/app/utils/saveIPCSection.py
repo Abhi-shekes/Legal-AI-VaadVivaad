@@ -1,22 +1,26 @@
-from langchain_astradb import AstraDBVectorStore
-from astrapy.info import VectorServiceOptions
 from langchain_core.documents import Document
-from app.core.config import settings
+from langchain_qdrant import QdrantVectorStore
 import json
-from typing import Dict  
+from typing import Dict
 
+from app.core.embeddings import GeminiEmbeddings
+from app.core.qdrant_client import ensure_collection, get_qdrant_client
 
-# Initialize vector store
-vector_store = AstraDBVectorStore(
-    collection_name="ipc_sections",
-    api_endpoint=settings.ASTRA_DB_API_ENDPOINT,
-    token=settings.ASTRA_DB_APPLICATION_TOKEN,
-    namespace=settings.ASTRA_DB_KEYSPACE,
-    collection_vector_service_options=VectorServiceOptions(
-        provider="nvidia",
-        model_name="NV-Embed-QA",
-    ),
-)
+COLLECTION_NAME = "ipc_sections"
+
+# Initialize vector store lazily so the app can boot without a reachable Qdrant instance
+_vector_store = None
+
+def _get_vector_store():
+    global _vector_store
+    if _vector_store is None:
+        ensure_collection(COLLECTION_NAME)
+        _vector_store = QdrantVectorStore(
+            client=get_qdrant_client(),
+            collection_name=COLLECTION_NAME,
+            embedding=GeminiEmbeddings(),
+        )
+    return _vector_store
 
 
 def prepare_section_document(section: Dict) -> Document:
@@ -84,11 +88,11 @@ def prepare_section_document(section: Dict) -> Document:
 
 
 def saveIPCSection(section_data: Dict):
-    """Store a single IPC section in Astra DB"""
+    """Store a single IPC section in Qdrant"""
     try:
         document = prepare_section_document(section_data)
-        vector_store.add_documents(documents=[document])
-        print(f"Saved IPC section {section_data.get('section', 'unknown')} to Astra DB")
+        _get_vector_store().add_documents(documents=[document])
+        print(f"Saved IPC section {section_data.get('section', 'unknown')} to Qdrant")
     except Exception as e:
         print(f"Error storing section {section_data.get('section', 'unknown')}: {str(e)}")
 

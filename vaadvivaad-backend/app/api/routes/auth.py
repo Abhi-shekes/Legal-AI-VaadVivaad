@@ -4,6 +4,7 @@ from app.schemas.user import UserCreate, LoginUser
 from app.db.mongodb import db
 from app.auth.hashing import hash_password, verify_password
 from app.utils.create_access_token import create_access_token
+from app.core.config import settings
 
 router = APIRouter()
 
@@ -40,9 +41,9 @@ async def login(user: LoginUser, response: Response , response_model=SuccessMess
         key="token",
         value=token,
         httponly=True,
-        secure=False,  # Set to True in production with HTTPS
-        samesite="Lax",
-        max_age=3600,  # Optional: 1 hour
+        secure=settings.COOKIE_SECURE,
+        samesite=settings.COOKIE_SAMESITE,
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         path="/"
     )
     
