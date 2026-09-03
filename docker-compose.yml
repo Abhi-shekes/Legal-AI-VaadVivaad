@@ -13,7 +13,7 @@ services:
     restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:-vaadvivaad}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-changeme_dev_password}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?MONGO_ROOT_PASSWORD must be set in .env}
     volumes:
       - vaadvivaad-mongo-data:/data/db
     networks:
@@ -31,7 +31,7 @@ services:
           "mongosh",
           "--quiet",
           "-u", "${MONGO_ROOT_USERNAME:-vaadvivaad}",
-          "-p", "${MONGO_ROOT_PASSWORD:-changeme_dev_password}",
+          "-p", "${MONGO_ROOT_PASSWORD:?MONGO_ROOT_PASSWORD must be set in .env}",
           "--authenticationDatabase", "admin",
           "--eval", "db.adminCommand('ping')"
         ]
@@ -46,12 +46,12 @@ services:
     image: qdrant/qdrant:v1.19.1
     container_name: vaadvivaad-qdrant
     restart: unless-stopped
-    # No QDRANT__SERVICE__API_KEY here on purpose: Qdrant treats the mere
-    # *presence* of that env var as "auth required", even set to an empty
-    # string -- so wiring it to an optional/blank QDRANT_API_KEY here would
-    # lock the backend itself out by default. If you want auth on Qdrant,
-    # add `QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY:?set it}` yourself
-    # (the backend already reads QDRANT_API_KEY correctly either way).
+    environment:
+      # Qdrant treats the mere *presence* of this env var as "auth
+      # required", even set to an empty string -- so QDRANT_API_KEY must
+      # be a real value in .env, never blank, or this locks the backend
+      # itself out too. The backend reads the same QDRANT_API_KEY.
+      QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY:?QDRANT_API_KEY must be set in .env}
     volumes:
       - vaadvivaad-qdrant-data:/qdrant/storage
     ports:
@@ -82,7 +82,7 @@ services:
     restart: unless-stopped
     environment:
       ENVIRONMENT: ${ENVIRONMENT:-production}
-      MONGO_URL: mongodb://${MONGO_ROOT_USERNAME:-vaadvivaad}:${MONGO_ROOT_PASSWORD:-changeme_dev_password}@mongo:27017/?authSource=admin
+      MONGO_URL: mongodb://${MONGO_ROOT_USERNAME:-vaadvivaad}:${MONGO_ROOT_PASSWORD:?MONGO_ROOT_PASSWORD must be set in .env}@mongo:27017/?authSource=admin
       DB_NAME: ${DB_NAME:-vaadvivaad}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY must be set in .env}
       JWT_ALGORITHM: HS256
@@ -94,7 +94,7 @@ services:
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-flash-latest}
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-gemini-embedding-001}
       EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:-768}
-      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-stub-google-api-key}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:?GOOGLE_API_KEY must be set in .env}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8081,http://localhost:5173}
     ports:
       - "${BACKEND_PORT:-8000}:8000"
