@@ -64,7 +64,7 @@ const Login = () => {
       footer={
         <p className={`text-sm ${dark ? "text-gray-400" : "text-gray-600"}`}>
           Don&apos;t have an account?{" "}
-          <Link to="/signup" className="font-semibold text-[#d4af37] hover:underline">
+          <Link to="/signup" className="font-semibold text-[#C7A046] hover:underline">
             Create one
           </Link>
         </p>
@@ -110,7 +110,7 @@ const Login = () => {
               type="checkbox"
               checked={rememberMe}
               onChange={(e) => setRememberMe(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-400 text-[#d4af37] focus:ring-[#d4af37]"
+              className="h-4 w-4 rounded border-gray-400 text-[#C7A046] focus:ring-[#C7A046]"
             />
             <span className={`text-xs ${dark ? "text-gray-400" : "text-gray-600"}`}>
               Remember me
@@ -119,7 +119,7 @@ const Login = () => {
           <a
             href="#"
             className={`text-xs font-medium hover:underline ${
-              dark ? "text-[#d4af37]" : "text-[#0a2463]"
+              dark ? "text-[#C7A046]" : "text-[#1B2A4A]"
             }`}
           >
             Forgot password?
@@ -131,11 +131,11 @@ const Login = () => {
           disabled={isSubmitting}
           whileHover={{ scale: isSubmitting ? 1 : 1.01 }}
           whileTap={{ scale: isSubmitting ? 1 : 0.98 }}
-          className={`group relative w-full flex items-center justify-center gap-2 overflow-hidden rounded-lg py-3 text-sm font-semibold text-[#0a2463] transition-all ${
+          className={`group relative w-full flex items-center justify-center gap-2 overflow-hidden rounded-lg py-3 text-sm font-semibold text-[#1B2A4A] transition-all ${
             isSubmitting ? "cursor-not-allowed opacity-70" : ""
           }`}
           style={{
-            backgroundImage: "linear-gradient(135deg, #f5d78c 0%, #d4af37 55%, #b8912a 100%)",
+            backgroundImage: "linear-gradient(135deg, #DBB968 0%, #C7A046 55%, #A8813A 100%)",
           }}
         >
           {isSubmitting ? (

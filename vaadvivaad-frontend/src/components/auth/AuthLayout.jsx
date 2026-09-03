@@ -40,15 +40,15 @@ export default function AuthLayout({ eyebrow, title, subtitle, children, footer 
   return (
     <div
       className={`min-h-screen w-full grid lg:grid-cols-2 pt-16 md:pt-20 lg:pt-0 transition-colors ${
-        dark ? "bg-[#0b0b0f]" : "bg-gray-50"
+        dark ? "bg-ink" : "bg-parchment"
       }`}
     >
       {/* Left: brand / storytelling panel */}
-      <div className="relative hidden lg:flex flex-col justify-between overflow-hidden bg-gradient-to-br from-[#050b1f] via-[#0a2463] to-[#02040a] px-12 xl:px-16 py-16 pt-28">
+      <div className="relative hidden lg:flex flex-col justify-between overflow-hidden bg-gradient-to-br from-ink via-[#1B2A4A] to-black px-12 xl:px-16 py-16 pt-28">
         {/* animated decorative orbs */}
-        <Orb className="w-96 h-96 bg-[#d4af37]/30 -top-24 -left-24" duration={12} />
-        <Orb className="w-80 h-80 bg-[#3b82f6]/30 bottom-0 -right-16" delay={2} duration={14} />
-        <Orb className="w-64 h-64 bg-[#d4af37]/10 top-1/3 right-1/4" delay={4} duration={9} />
+        <Orb className="w-96 h-96 bg-[#C7A046]/30 -top-24 -left-24" duration={12} />
+        <Orb className="w-80 h-80 bg-[#3E8E63]/30 bottom-0 -right-16" delay={2} duration={14} />
+        <Orb className="w-64 h-64 bg-[#C7A046]/10 top-1/3 right-1/4" delay={4} duration={9} />
 
         {/* dot-grid texture */}
         <div
@@ -71,13 +71,13 @@ export default function AuthLayout({ eyebrow, title, subtitle, children, footer 
             transition={{ duration: 0.6, delay: 0.1 }}
             className="mt-16 max-w-md"
           >
-            <span className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/10 px-3 py-1 text-xs font-medium text-[#f5d78c] backdrop-blur-sm">
+            <span className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/10 px-3 py-1 text-xs font-medium text-[#DBB968] backdrop-blur-sm">
               <Sparkles size={13} />
               AI-Powered Legal Analysis
             </span>
-            <h1 className="mt-5 text-3xl xl:text-4xl font-serif font-bold text-white leading-tight">
+            <h1 className="mt-5 text-3xl xl:text-4xl font-display font-bold text-white leading-tight">
               Where arguments meet{" "}
-              <span className="text-[#d4af37]">intelligence</span>.
+              <span className="text-[#C7A046]">intelligence</span>.
             </h1>
             <p className="mt-4 text-sm xl:text-base text-blue-100/70 leading-relaxed">
               Submit a case, and let an AI courtroom simulate the debate —
@@ -97,7 +97,7 @@ export default function AuthLayout({ eyebrow, title, subtitle, children, footer 
               key={title}
               className="flex items-start gap-4 rounded-xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-sm transition-colors hover:bg-white/[0.07]"
             >
-              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-[#d4af37]/15 text-[#d4af37]">
+              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-[#C7A046]/15 text-[#C7A046]">
                 <Icon size={18} />
               </div>
               <div>
@@ -112,11 +112,11 @@ export default function AuthLayout({ eyebrow, title, subtitle, children, footer 
       {/* Right: form panel */}
       <div
         className={`relative flex flex-col justify-center items-center px-4 sm:px-6 py-10 lg:py-16 ${
-          dark ? "bg-[#0b0b0f]" : "bg-gray-50"
+          dark ? "bg-ink" : "bg-parchment"
         }`}
       >
         {/* subtle background accent, visible on mobile too where left panel is hidden */}
-        <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-[#0a2463]/90 to-transparent lg:hidden" />
+        <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-[#1B2A4A]/90 to-transparent lg:hidden" />
 
         <motion.div
           initial={{ opacity: 0, y: 24 }}
@@ -126,19 +126,19 @@ export default function AuthLayout({ eyebrow, title, subtitle, children, footer 
         >
           <div className="lg:hidden flex justify-center mb-6">
             <div className="rounded-full p-3 bg-white shadow-lg">
-              <Scale className="text-[#d4af37]" size={26} />
+              <Scale className="text-[#C7A046]" size={26} />
             </div>
           </div>
 
           <div className="text-center lg:text-left mb-8">
             {eyebrow && (
-              <p className="text-xs font-semibold uppercase tracking-widest text-[#d4af37] mb-2">
+              <p className="text-xs font-semibold uppercase tracking-widest text-[#C7A046] mb-2">
                 {eyebrow}
               </p>
             )}
             <h2
-              className={`text-2xl sm:text-3xl font-serif font-bold ${
-                dark ? "text-white" : "text-gray-900"
+              className={`text-2xl sm:text-3xl font-display font-bold ${
+                dark ? "text-white" : "text-ink-blue"
               }`}
             >
               {title}

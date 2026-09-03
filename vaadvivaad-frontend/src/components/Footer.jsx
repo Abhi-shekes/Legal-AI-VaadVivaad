@@ -5,109 +5,79 @@ import { faBalanceScale } from '@fortawesome/free-solid-svg-icons';
 import { Link } from 'react-router-dom';
 import themeStore from '../store/themeStore';
 
+const socials = [
+  { icon: faFacebook, href: 'https://facebook.com', label: 'Facebook' },
+  { icon: faTwitter, href: 'https://twitter.com', label: 'Twitter' },
+  { icon: faInstagram, href: 'https://instagram.com', label: 'Instagram' },
+  { icon: faLinkedin, href: 'https://linkedin.com', label: 'LinkedIn' },
+];
+
+const links = [
+  { label: 'Home', to: '/' },
+  { label: 'Features', to: '/#features-section' },
+  { label: 'Contact', to: '/contact' },
+  { label: 'Login', to: '/login' },
+];
+
 const Footer = () => {
-  // Theme Switcher (Got Values from themeStore (Zustand))
   const { theme } = themeStore((state) => state);
+  const dark = theme === 'dark';
+  const year = new Date().getFullYear();
 
   return (
-    <footer
-      className={`w-full py-8 px-6 md:px-10 border-t transition-colors duration-300 ${theme === 'dark'
-          ? 'bg-[#121212] border-gray-600 text-white'
-          : 'bg-white border-gray-200 text-black'
-        }`}
-    >
-      <div className="max-w-[85%] mx-auto flex flex-col md:flex-row justify-between items-center">
-        {/* Logo and Description */}
-        <div className="mb-6 md:mb-0">
-          <h1 className="text-2xl font-bold flex items-center">
-            <FontAwesomeIcon
-              icon={faBalanceScale}
-              className="mr-3 text-[#d4af37]"
-            />
-            <span className="text-[#0a2463]">Vaad</span>
-            <span className="text-[#d4af37]">Vivaad</span>
-          </h1>
-          <p
-            className={`mt-2 transition-colors ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-              }`}
-          >
-            Transforming legal practice with artificial intelligence.
-          </p>
+    <footer className={`w-full border-t transition-colors duration-300 ${dark ? 'bg-ink border-white/10 text-white' : 'bg-parchment border-ink-blue/10 text-ink-blue'
+      }`}>
+      <div className="max-w-7xl mx-auto px-6 md:px-10 pt-12 pb-8">
+        <div className="flex flex-col md:flex-row justify-between gap-10 md:gap-8">
+          {/* Wordmark + description */}
+          <div className="max-w-xs">
+            <div className="flex items-center gap-2 font-display text-xl">
+              <FontAwesomeIcon icon={faBalanceScale} className="text-brass text-lg" />
+              <span>Vaad<span className="text-brass">Vivaad</span></span>
+            </div>
+            <p className={`mt-3 text-sm leading-relaxed ${dark ? 'text-gray-400' : 'text-ink-blue/60'}`}>
+              An AI-adjudicated debate on every case you file — grounded in IPC sections and precedent, argued from both sides.
+            </p>
+            <div className="flex gap-4 mt-5">
+              {socials.map((s) => (
+                <a
+                  key={s.label}
+                  href={s.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={s.label}
+                  className={`transition-colors duration-200 ${dark ? 'text-gray-500 hover:text-brass' : 'text-ink-blue/40 hover:text-brass'}`}
+                >
+                  <FontAwesomeIcon icon={s.icon} size="lg" />
+                </a>
+              ))}
+            </div>
+          </div>
+
+          {/* Docket-style link index */}
+          <div>
+            <p className={`docket-label text-[11px] mb-4 ${dark ? 'text-gray-500' : 'text-ink-blue/40'}`}>Index</p>
+            <ul className="space-y-2.5">
+              {links.map((l) => (
+                <li key={l.label}>
+                  <Link
+                    to={l.to}
+                    className={`text-sm transition-colors duration-200 ${dark ? 'text-gray-300 hover:text-brass' : 'text-ink-blue/70 hover:text-brass'}`}
+                  >
+                    {l.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
 
-        {/* Navigation Links */}
-        <div className="flex flex-wrap gap-6 justify-center md:justify-start">
-          <Link
-            to="/"
-            className={`transition-colors duration-300 ease-in-out hover:text-[#d4af37] ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-              }`}
-          >
-            Home
-          </Link>
-
-          <Link
-            to="/contact"
-            className={`transition-colors duration-300 ease-in-out hover:text-[#d4af37] ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-              }`}
-          >
-            Contact
-          </Link>
-          <Link
-            to="/login"
-            className={`transition-colors duration-300 ease-in-out hover:text-[#d4af37] ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-              }`}
-          >
-            Login
-          </Link>
+        {/* Footer bottom: case-record metadata line */}
+        <div className={`docket-rule mt-10 pt-5 flex flex-col sm:flex-row justify-between items-center gap-2 font-mono text-[11px] tracking-wide ${dark ? 'text-gray-500' : 'text-ink-blue/40'
+          }`}>
+          <span>© {year} VaadVivaad — All rights reserved.</span>
+          <span>Doc. Ref. VV-{year}</span>
         </div>
-
-        {/* Social Media Icons */}
-        <div className="flex gap-4 mt-6 md:mt-0">
-          <a
-            href="https://facebook.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`transition-colors duration-300 ease-in-out ${theme === 'dark' ? 'text-gray-400 hover:text-[#d4af37]' : 'text-gray-600 hover:text-[#d4af37]'
-              }`}
-          >
-            <FontAwesomeIcon icon={faFacebook} size="lg" />
-          </a>
-          <a
-            href="https://twitter.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`transition-colors duration-300 ease-in-out ${theme === 'dark' ? 'text-gray-400 hover:text-[#d4af37]' : 'text-gray-600 hover:text-[#d4af37]'
-              }`}
-          >
-            <FontAwesomeIcon icon={faTwitter} size="lg" />
-          </a>
-          <a
-            href="https://instagram.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`transition-colors duration-300 ease-in-out ${theme === 'dark' ? 'text-gray-400 hover:text-[#d4af37]' : 'text-gray-600 hover:text-[#d4af37]'
-              }`}
-          >
-            <FontAwesomeIcon icon={faInstagram} size="lg" />
-          </a>
-          <a
-            href="https://linkedin.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`transition-colors duration-300 ease-in-out ${theme === 'dark' ? 'text-gray-400 hover:text-[#d4af37]' : 'text-gray-600 hover:text-[#d4af37]'
-              }`}
-          >
-            <FontAwesomeIcon icon={faLinkedin} size="lg" />
-          </a>
-        </div>
-      </div>
-
-      {/* Footer Bottom Section */}
-      <div
-        className={`mt-8 pt-4 text-center transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-          }`}
-      >
-        © {new Date().getFullYear()} Vaad Vivaad. All rights reserved.
       </div>
     </footer>
   );

@@ -3,14 +3,31 @@
 @tailwind utilities;
 
 :root {
-  --legal-blue: #1E3A8A;
-  --legal-gold: #D4AF37;
-  --supporting-green: #065F46;
-  --opposing-red: #991B1B;
-  --legal-blue-light: #3B82F6;
-  --legal-gold-light: #F59E0B;
-  --supporting-green-light: #10B981;
-  --opposing-red-light: #EF4444;
+  --legal-blue: #1B2A4A;
+  --legal-gold: #C7A046;
+  --supporting-green: #3E8E63;
+  --opposing-red: #A63D3D;
+  --legal-blue-light: #2E4370;
+  --legal-gold-light: #DBB968;
+  --supporting-green-light: #55AB7D;
+  --opposing-red-light: #C25555;
+  --ink: #0B0E14;
+  --parchment: #F7F3EA;
+}
+
+.font-display { font-family: 'Fraunces', ui-serif, Georgia, serif; }
+.font-mono { font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace; }
+
+.docket-rule {
+  border-top-width: 1px;
+  border-color: currentColor;
+  opacity: 0.15;
+}
+
+.docket-label {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 @keyframes bounce {
@@ -74,11 +91,11 @@
 .legal-card {
   backdrop-filter: blur(10px);
   background: rgba(255, 255, 255, 0.95);
-  border: 1px solid rgba(30, 58, 138, 0.1);
+  border: 1px solid rgba(27, 42, 74, 0.1);
 }
 
 .legal-shadow {
-  box-shadow: 0 10px 25px rgba(30, 58, 138, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 10px 25px rgba(27, 42, 74, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
 }
 
 .gold-accent {

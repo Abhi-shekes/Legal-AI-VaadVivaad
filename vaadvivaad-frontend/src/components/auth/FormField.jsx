@@ -28,7 +28,7 @@ export default function FormField({
           error
             ? "border-red-500"
             : focused
-            ? "border-[#d4af37] ring-2 ring-[#d4af37]/20"
+            ? "border-[#C7A046] ring-2 ring-[#C7A046]/20"
             : dark
             ? "border-white/15 hover:border-white/25"
             : "border-gray-300 hover:border-gray-400"
@@ -38,7 +38,7 @@ export default function FormField({
           <Icon
             size={16}
             className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors ${
-              focused ? "text-[#d4af37]" : dark ? "text-gray-500" : "text-gray-400"
+              focused ? "text-[#C7A046]" : dark ? "text-gray-500" : "text-gray-400"
             }`}
           />
         )}
@@ -65,7 +65,7 @@ export default function FormField({
             floated
               ? "top-1.5 text-[11px] scale-100"
               : `top-1/2 -translate-y-1/2 text-sm ${dark ? "text-gray-500" : "text-gray-400"}`
-          } ${floated && (focused ? "text-[#d4af37]" : dark ? "text-gray-400" : "text-gray-500")}`}
+          } ${floated && (focused ? "text-[#C7A046]" : dark ? "text-gray-400" : "text-gray-500")}`}
         >
           {label}
         </label>

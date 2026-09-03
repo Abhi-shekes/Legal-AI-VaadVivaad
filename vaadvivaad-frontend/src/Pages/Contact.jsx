@@ -1,363 +1,231 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, useAnimation } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { 
-  faEnvelope, 
-  faPhone, 
-  faMapMarkerAlt, 
-  faUserTie 
-} from '@fortawesome/free-solid-svg-icons';
+import { Mail, MapPin, ArrowRight } from 'lucide-react';
 import themeStore from '../store/themeStore';
+
+const TEAM = [
+  {
+    name: 'Abhishek Tiwari',
+    role: 'Student',
+    bio: 'Specializes in AI-driven legal research and case-analysis methodology.',
+    email: 'abhishek.tiwari24@spit.ac.in',
+  },
+  {
+    name: 'Deepak Yadav',
+    role: 'Student',
+    bio: 'Bridges legal expertise and technology — AI algorithms for predictive legal analytics.',
+    email: 'deepak.yadav24@spit.ac.in',
+  },
+  {
+    name: 'Iffat Patel',
+    role: 'Student',
+    bio: 'Leads legal research, with expertise in constitutional law and AI research methodology.',
+    email: 'iffat.patel24@spit.ac.in',
+  },
+  {
+    name: 'Aarti Karande',
+    role: 'Mentor',
+    bio: 'Specializes in legal document automation and AI-driven contract analysis.',
+    email: 'aarti@legalai.com',
+  },
+];
+
+const initials = (name) => name.split(' ').map((p) => p[0]).join('');
 
 const ContactUs = () => {
   const { theme } = themeStore((state) => state);
+  const navigate = useNavigate();
+  const dark = theme === 'dark';
 
-  // Animation controls
   const controls = useAnimation();
-  const [ref, inView] = useInView({
-    threshold: 0.1,
-    triggerOnce: true,
-  });
+  const [ref, inView] = useInView({ threshold: 0.1, triggerOnce: true });
 
   useEffect(() => {
-    if (inView) {
-      controls.start('visible');
-    }
+    if (inView) controls.start('visible');
   }, [controls, inView]);
 
-  // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.2,
-      },
-    },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
+  };
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: { y: 0, opacity: 1, transition: { duration: 0.5, ease: 'easeOut' } },
   };
 
-  const itemVariants = {
-    hidden: { y: 50, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: {
-        duration: 0.6,
-        ease: "easeOut",
-      },
-    },
-  };
+  const inputClass = `w-full px-4 py-3 rounded-md border text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-brass ${dark
+    ? 'bg-white/[0.03] border-white/10 text-white placeholder:text-gray-600'
+    : 'bg-white border-ink-blue/15 text-ink-blue placeholder:text-ink-blue/30'
+    }`;
+  const labelClass = `block mb-2 text-sm font-medium ${dark ? 'text-gray-300' : 'text-ink-blue/70'}`;
 
   return (
-    <div className={`min-h-screen ${theme === 'dark' ? 'bg-[#121212] text-white' : 'bg-white text-black'}`}>
-      {/* Hero Section */}
-      <motion.section 
-        className="pt-32 pb-16 px-4 md:px-10 lg:px-20 flex flex-col items-center"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8 }}
-      >
-        <div className="w-full max-w-7xl mx-auto">
-          <motion.div 
-            className="text-center"
-            initial={{ opacity: 0, y: -20 }}
+    <div className={`min-h-screen ${dark ? 'bg-ink text-white' : 'bg-parchment text-ink-blue'}`}>
+      {/* Hero */}
+      <section className="pt-28 md:pt-36 lg:pt-40 pb-14 px-4 md:px-10 text-center">
+        <div className="max-w-3xl mx-auto">
+          <motion.p
+            initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
+            transition={{ duration: 0.5 }}
+            className={`docket-label text-xs mb-4 ${dark ? 'text-gray-500' : 'text-ink-blue/50'}`}
           >
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
-              <span className="text-[#0a2463]">Meet</span> <span className="text-[#d4af37]">Our</span> <span>Team</span>
-            </h1>
-            <p className={`text-lg md:text-xl mb-12 max-w-3xl mx-auto ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-              Our team of legal experts and mentors are dedicated to revolutionizing the legal industry through AI-powered solutions and expert guidance.
-            </p>
-          </motion.div>
+            Counsel of record
+          </motion.p>
+          <motion.h1
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="font-display text-4xl md:text-5xl mb-5"
+          >
+            Meet the <span className="text-brass">team</span>.
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className={`text-base md:text-lg ${dark ? 'text-gray-400' : 'text-ink-blue/60'}`}
+          >
+            The people building VaadVivaad — an AI-adjudicated debate platform for Indian case law.
+          </motion.p>
         </div>
-      </motion.section>
-      
-      {/* Team Members Section */}
-      <section className={`py-16 ${theme === 'dark' ? 'bg-[#1a1a1a]' : 'bg-gray-50'}`}>
-        <div className="max-w-7xl mx-auto px-4 md:px-10">
-          <motion.div 
-            ref={ref}
-            variants={containerVariants}
-            initial="hidden"
-            animate={controls}
-            className="grid grid-cols-1 md:grid-cols-2 gap-10"
-          >
-            {/* Team Member 1 */}
-            <motion.div 
-              variants={itemVariants}
-              className={`p-8 rounded-xl shadow-lg ${theme === 'dark' ? 'bg-[#1f1f1f] hover:bg-[#252525]' : 'bg-white hover:bg-gray-50'} transition-all duration-300 transform hover:-translate-y-2 flex flex-col md:flex-row gap-6`}
-            >
-              <div className="flex-shrink-0">
-                <div className="w-32 h-32 rounded-full overflow-hidden bg-gradient-to-r from-[#0a2463] to-[#0a2463]/70 flex items-center justify-center">
-                  <FontAwesomeIcon icon={faUserTie} className="text-white text-4xl" />
+      </section>
+
+      {/* Team roster */}
+      <section className={`py-14 md:py-20 px-4 md:px-10 ${dark ? 'bg-white/[0.02]' : 'bg-white'}`}>
+        <div className="max-w-4xl mx-auto">
+          <motion.div ref={ref} variants={containerVariants} initial="hidden" animate={controls}>
+            {TEAM.map((member, i) => (
+              <motion.div
+                key={member.name}
+                variants={itemVariants}
+                className={`flex flex-col sm:flex-row gap-5 sm:items-start py-7 ${i !== 0 ? 'docket-rule' : ''}`}
+              >
+                <div className={`flex-shrink-0 w-14 h-14 rounded-md flex items-center justify-center font-mono text-sm font-medium border ${dark ? 'border-brass/30 text-brass bg-brass/5' : 'border-ink-blue/15 text-ink-blue bg-ink-blue/5'
+                  }`}>
+                  {initials(member.name)}
                 </div>
-              </div>
-              <div className="flex-grow">
-                <h3 className="text-2xl font-bold mb-2">Abhishek Tiwari</h3>
-                <p className="text-[#d4af37] font-semibold mb-3">Student</p>
-                <p className={`mb-4 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                  With over 2 years of experience in machine learning and artificial intelligence, Abhishek specializes in AI-driven legal research and case analysis methodologies.
-                </p>
-                <div className="flex gap-4">
-                  <a href="mailto:abhishek.tiwari24@spit.ac.in" className={`flex items-center gap-2 ${theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-black'}`}>
-                    <FontAwesomeIcon icon={faEnvelope} />
-                    <span>Email</span>
-                  </a>
-                  <a href="tel:+1234567890" className={`flex items-center gap-2 ${theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-black'}`}>
-                    <FontAwesomeIcon icon={faPhone} />
-                    <span>Contact</span>
+                <div className="flex-grow">
+                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-1.5">
+                    <h3 className="font-semibold text-lg">{member.name}</h3>
+                    <span className="docket-label text-[11px] text-brass">{member.role}</span>
+                  </div>
+                  <p className={`text-sm leading-relaxed mb-2.5 ${dark ? 'text-gray-400' : 'text-ink-blue/60'}`}>
+                    {member.bio}
+                  </p>
+                  <a
+                    href={`mailto:${member.email}`}
+                    className={`inline-flex items-center gap-1.5 text-sm transition-colors ${dark ? 'text-gray-400 hover:text-brass' : 'text-ink-blue/60 hover:text-brass'
+                      }`}
+                  >
+                    <Mail size={13} />
+                    {member.email}
                   </a>
                 </div>
-              </div>
-            </motion.div>
-            
-            {/* Team Member 2 */}
-            <motion.div 
-              variants={itemVariants}
-              className={`p-8 rounded-xl shadow-lg ${theme === 'dark' ? 'bg-[#1f1f1f] hover:bg-[#252525]' : 'bg-white hover:bg-gray-50'} transition-all duration-300 transform hover:-translate-y-2 flex flex-col md:flex-row gap-6`}
-            >
-              <div className="flex-shrink-0">
-                <div className="w-32 h-32 rounded-full overflow-hidden bg-gradient-to-r from-[#d4af37] to-[#d4af37]/70 flex items-center justify-center">
-                  <FontAwesomeIcon icon={faUserTie} className="text-white text-4xl" />
-                </div>
-              </div>
-              <div className="flex-grow">
-                <h3 className="text-2xl font-bold mb-2">Deepak Yadav</h3>
-                <p className="text-[#d4af37] font-semibold mb-3">Student</p>
-                <p className={`mb-4 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                  Deepak bridges the gap between legal expertise and technology, specializing in AI algorithms for predictive legal analytics.
-                </p>
-                <div className="flex gap-4">
-                  <a href="mailto:deepak.yadav24@spit.ac.in" className={`flex items-center gap-2 ${theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-black'}`}>
-                    <FontAwesomeIcon icon={faEnvelope} />
-                    <span>Email</span>
-                  </a>
-                  <a href="tel:+1234567891" className={`flex items-center gap-2 ${theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-black'}`}>
-                    <FontAwesomeIcon icon={faPhone} />
-                    <span>Contact</span>
-                  </a>
-                </div>
-              </div>
-            </motion.div>
-            
-            {/* Team Member 3 */}
-            <motion.div 
-              variants={itemVariants}
-              className={`p-8 rounded-xl shadow-lg ${theme === 'dark' ? 'bg-[#1f1f1f] hover:bg-[#252525]' : 'bg-white hover:bg-gray-50'} transition-all duration-300 transform hover:-translate-y-2 flex flex-col md:flex-row gap-6`}
-            >
-              <div className="flex-shrink-0">
-                <div className="w-32 h-32 rounded-full overflow-hidden bg-gradient-to-r from-[#0a2463] to-[#0a2463]/70 flex items-center justify-center">
-                  <FontAwesomeIcon icon={faUserTie} className="text-white text-4xl" />
-                </div>
-              </div>
-              <div className="flex-grow">
-                <h3 className="text-2xl font-bold mb-2">Iffat Patel</h3>
-                <p className="text-[#d4af37] font-semibold mb-3">Student</p>
-                <p className={`mb-4 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                  Iffat leads our legal research initiatives, with expertise in constitutional law and developing AI-powered research methodologies.
-                </p>
-                <div className="flex gap-4">
-                  <a href="mailto:iffat.patel24@spit.ac.in" className={`flex items-center gap-2 ${theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-black'}`}>
-                    <FontAwesomeIcon icon={faEnvelope} />
-                    <span>Email</span>
-                  </a>
-                  <a href="tel:+1234567892" className={`flex items-center gap-2 ${theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-black'}`}>
-                    <FontAwesomeIcon icon={faPhone} />
-                    <span>Contact</span>
-                  </a>
-                </div>
-              </div>
-            </motion.div>
-            
-            {/* Team Member 4 */}
-            <motion.div 
-              variants={itemVariants}
-              className={`p-8 rounded-xl shadow-lg ${theme === 'dark' ? 'bg-[#1f1f1f] hover:bg-[#252525]' : 'bg-white hover:bg-gray-50'} transition-all duration-300 transform hover:-translate-y-2 flex flex-col md:flex-row gap-6`}
-            >
-              <div className="flex-shrink-0">
-                <div className="w-32 h-32 rounded-full overflow-hidden bg-gradient-to-r from-[#d4af37] to-[#d4af37]/70 flex items-center justify-center">
-                  <FontAwesomeIcon icon={faUserTie} className="text-white text-4xl" />
-                </div>
-              </div>
-              <div className="flex-grow">
-                <h3 className="text-2xl font-bold mb-2">Aarti Karande</h3>
-                <p className="text-[#d4af37] font-semibold mb-3">Mentor</p>
-                <p className={`mb-4 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                  Aarti specializes in legal document automation and AI-driven contract analysis, helping firms streamline their documentation processes.
-                </p>
-                <div className="flex gap-4">
-                  <a href="mailto:aarti@legalai.com" className={`flex items-center gap-2 ${theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-black'}`}>
-                    <FontAwesomeIcon icon={faEnvelope} />
-                    <span>Email</span>
-                  </a>
-                  <a href="tel:+1234567893" className={`flex items-center gap-2 ${theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-black'}`}>
-                    <FontAwesomeIcon icon={faPhone} />
-                    <span>Contact</span>
-                  </a>
-                </div>
-              </div>
-            </motion.div>
+              </motion.div>
+            ))}
           </motion.div>
         </div>
       </section>
-      
-      {/* Contact Form Section */}
-      <section className="py-20">
-        <div className="max-w-7xl mx-auto px-4 md:px-10 grid md:grid-cols-2 gap-12">
-          <motion.div 
-            initial={{ opacity: 0, x: -50 }}
+
+      {/* Get in touch + form */}
+      <section className="py-16 md:py-24 px-4 md:px-10">
+        <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-12 md:gap-16">
+          <motion.div
+            initial={{ opacity: 0, x: -30 }}
             whileInView={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8 }}
             viewport={{ once: true }}
-            className="flex flex-col justify-center"
+            transition={{ duration: 0.6 }}
           >
-            <div className="inline-block rounded-lg bg-[#0a2463] text-white px-4 py-2 text-sm mb-4">Get in Touch</div>
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">
-              Have Questions? <span className="text-[#d4af37]">Contact Us</span>
+            <p className={`docket-label text-xs mb-3 ${dark ? 'text-gray-500' : 'text-ink-blue/50'}`}>Get in touch</p>
+            <h2 className="font-display text-3xl md:text-4xl mb-5">
+              Questions? <span className="text-brass">Reach out.</span>
             </h2>
-            <p className={`mb-8 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-              Our team of legal AI experts is ready to answer your questions and help you leverage our platform for your practice.
+            <p className={`mb-8 text-sm leading-relaxed ${dark ? 'text-gray-400' : 'text-ink-blue/60'}`}>
+              Email anyone on the roster above directly, or find us at:
             </p>
-            
-            <div className="space-y-6">
-              <div className="flex items-start gap-4">
-                <div className="bg-[#0a2463] text-white p-3 rounded-lg">
-                  <FontAwesomeIcon icon={faMapMarkerAlt} />
-                </div>
-                <div>
-                  <h3 className="font-bold mb-1">Our Location</h3>
-                  <p className={theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}>
-                    Sardar Patel Institute of Technology, Munshi Nagar<br />
-                    Azad Nagar.
-                  </p>
-                </div>
+
+            <div className="flex items-start gap-4">
+              <div className={`p-3 rounded-lg flex-shrink-0 ${dark ? 'bg-brass/10 text-brass' : 'bg-ink-blue/5 text-ink-blue'}`}>
+                <MapPin size={16} />
               </div>
-              
-              <div className="flex items-start gap-4">
-                <div className="bg-[#d4af37] text-white p-3 rounded-lg">
-                  <FontAwesomeIcon icon={faEnvelope} />
-                </div>
-                <div>
-                  <h3 className="font-bold mb-1">Email Us</h3>
-                  <p className={theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}>
-                    info@legalai.com<br />
-                    support@legalai.com
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-4">
-                <div className="bg-[#0a2463] text-white p-3 rounded-lg">
-                  <FontAwesomeIcon icon={faPhone} />
-                </div>
-                <div>
-                  <h3 className="font-bold mb-1">Call Us</h3>
-                  <p className={theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}>
-                    +1 (555) 123-4567<br />
-                    +1 (555) 987-6543
-                  </p>
-                </div>
+              <div>
+                <h3 className="font-semibold mb-1 text-sm">Our location</h3>
+                <p className={`text-sm ${dark ? 'text-gray-400' : 'text-ink-blue/60'}`}>
+                  Sardar Patel Institute of Technology, Munshi Nagar<br />
+                  Azad Nagar, Mumbai
+                </p>
               </div>
             </div>
           </motion.div>
-          
-          <motion.div 
-            initial={{ opacity: 0, x: 50 }}
+
+          <motion.div
+            initial={{ opacity: 0, x: 30 }}
             whileInView={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8 }}
             viewport={{ once: true }}
-            className={`rounded-xl shadow-lg p-8 ${theme === 'dark' ? 'bg-[#1f1f1f]' : 'bg-white'}`}
+            transition={{ duration: 0.6 }}
+            className={`rounded-xl p-7 md:p-8 border ${dark ? 'bg-white/[0.03] border-white/10' : 'bg-white border-ink-blue/10 shadow-sm'}`}
           >
-            <h3 className="text-2xl font-bold mb-6">Send Us a Message</h3>
-            <form className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <h3 className="font-semibold text-lg mb-6">Send a message</h3>
+            <form className="space-y-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
-                  <label htmlFor="name" className={`block mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Your Name</label>
-                  <input 
-                    type="text" 
-                    id="name" 
-                    className={`w-full px-4 py-3 rounded-md border ${theme === 'dark' ? 'bg-[#252525] border-gray-700 text-white' : 'bg-gray-50 border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-[#d4af37]`} 
-                    placeholder="John Doe"
-                  />
+                  <label htmlFor="name" className={labelClass}>Your name</label>
+                  <input type="text" id="name" className={inputClass} placeholder="Jane Doe" />
                 </div>
                 <div>
-                  <label htmlFor="email" className={`block mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Your Email</label>
-                  <input 
-                    type="email" 
-                    id="email" 
-                    className={`w-full px-4 py-3 rounded-md border ${theme === 'dark' ? 'bg-[#252525] border-gray-700 text-white' : 'bg-gray-50 border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-[#d4af37]`} 
-                    placeholder="john@example.com"
-                  />
+                  <label htmlFor="email" className={labelClass}>Your email</label>
+                  <input type="email" id="email" className={inputClass} placeholder="jane@example.com" />
                 </div>
               </div>
-              
               <div>
-                <label htmlFor="subject" className={`block mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Subject</label>
-                <input 
-                  type="text" 
-                  id="subject" 
-                  className={`w-full px-4 py-3 rounded-md border ${theme === 'dark' ? 'bg-[#252525] border-gray-700 text-white' : 'bg-gray-50 border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-[#d4af37]`} 
-                  placeholder="How can we help you?"
-                />
+                <label htmlFor="subject" className={labelClass}>Subject</label>
+                <input type="text" id="subject" className={inputClass} placeholder="How can we help?" />
               </div>
-              
               <div>
-                <label htmlFor="message" className={`block mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Your Message</label>
-                <textarea 
-                  id="message" 
-                  rows={5} 
-                  className={`w-full px-4 py-3 rounded-md border ${theme === 'dark' ? 'bg-[#252525] border-gray-700 text-white' : 'bg-gray-50 border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-[#d4af37]`} 
-                  placeholder="Write your message here..."
-                ></textarea>
+                <label htmlFor="message" className={labelClass}>Message</label>
+                <textarea id="message" rows={5} className={inputClass} placeholder="Write your message here..." />
               </div>
-              
-              <motion.button 
+              <motion.button
                 type="submit"
-                className="bg-[#0a2463] hover:bg-[#071952] text-white font-bold py-3 px-8 rounded-md shadow-lg transition duration-300 ease-in-out w-full"
-                whileHover={{ scale: 1.02 }}
+                whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.98 }}
+                className="w-full bg-brass text-ink font-semibold py-3 rounded-full transition-colors hover:bg-brass/90"
               >
-                Send Message
+                Send message
               </motion.button>
             </form>
           </motion.div>
         </div>
       </section>
-      
 
-      
-      {/* CTA Section */}
-      <section className="py-20 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[#0a2463] opacity-90 z-0"></div>
-        <div className="absolute inset-0 z-0">
-          <div className="absolute top-0 left-0 w-64 h-64 bg-[#d4af37] rounded-full opacity-20 transform -translate-x-1/2 -translate-y-1/2"></div>
-          <div className="absolute bottom-0 right-0 w-96 h-96 bg-[#d4af37] rounded-full opacity-20 transform translate-x-1/3 translate-y-1/3"></div>
-        </div>
-        
-        <div className="max-w-5xl mx-auto px-4 md:px-10 relative z-10">
-          <motion.div 
-            className="text-center text-white"
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8 }}
-            viewport={{ once: true }}
+      {/* CTA */}
+      <section className="py-16 md:py-20 px-4 md:px-10 relative overflow-hidden bg-ink-blue">
+        <div className="absolute -top-20 -left-20 w-72 h-72 rounded-full bg-verdict/20 blur-3xl" />
+        <div className="absolute -bottom-24 -right-16 w-80 h-80 rounded-full bg-dissent/20 blur-3xl" />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7 }}
+          className="max-w-2xl mx-auto text-center relative z-10 text-white"
+        >
+          <h2 className="font-display text-3xl md:text-4xl mb-4">Ready to file a case?</h2>
+          <p className="text-base md:text-lg text-blue-100/70 mb-8">
+            See both sides argued — grounded in IPC sections and precedent.
+          </p>
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => navigate('/signup')}
+            className="inline-flex items-center gap-2 bg-brass text-ink font-semibold py-3.5 px-8 rounded-full shadow-lg transition-colors hover:bg-brass/90"
           >
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to Transform Your Legal Practice?</h2>
-            <p className="text-xl mb-10 text-gray-100">
-              Join thousands of legal professionals who are already leveraging our AI platform to win more cases and serve clients better.
-            </p>
-            <motion.button 
-              className="bg-[#d4af37] hover:bg-[#c4a030] text-[#0a2463] font-bold py-4 px-10 rounded-md shadow-lg transition duration-300 ease-in-out text-lg"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              Schedule a Demo
-            </motion.button>
-          </motion.div>
-        </div>
+            Create your account
+            <ArrowRight size={16} />
+          </motion.button>
+        </motion.div>
       </section>
     </div>
   );

@@ -6,14 +6,16 @@ import themeStore from '../store/themeStore';
 const Page404 = () => {
   const { theme } = themeStore((state) => state);
 
+  const dark = theme === 'dark';
+
   return (
     <div
-      className={`flex flex-col items-center justify-center min-h-screen px-4 py-8 space-y-6 text-center transition-colors ${
-        theme === 'dark' ? 'bg-black text-white' : 'bg-gray-100 text-gray-800'
+      className={`flex flex-col items-center justify-center min-h-screen px-4 py-8 space-y-5 text-center transition-colors ${
+        dark ? 'bg-ink text-white' : 'bg-parchment text-ink-blue'
       }`}
     >
       {/* Lottie Animation with Dynamic Size */}
-      <div className="w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl">
+      <div className="w-full max-w-xs sm:max-w-sm md:max-w-md">
         <DotLottieReact
           src="https://lottie.host/b16147f4-25a8-4f06-9df2-8e8722d42beb/QnBYBwBaI0.lottie"
           loop
@@ -21,28 +23,27 @@ const Page404 = () => {
           style={{
             width: '100%',
             height: '100%',
-            maxHeight: '300px', // limits height for better visual balance
+            maxHeight: '260px',
           }}
         />
       </div>
 
-      {/* Heading */}
-      <h1 className="text-8xl md:text-9xl font-extrabold text-blue-500">
-        404
-      </h1>
-      <h2 className="text-3xl md:text-4xl font-semibold">
-        Oops! Page Not Found
+      <p className={`docket-label text-xs ${dark ? 'text-gray-500' : 'text-ink-blue/50'}`}>
+        Case not found
+      </p>
+      <h1 className="font-display text-7xl md:text-8xl text-brass">404</h1>
+      <h2 className="font-display text-2xl md:text-3xl">
+        This page isn't on the docket.
       </h2>
-      <p className="text-lg max-w-md md:max-w-lg">
-        The page you are looking for might have been removed, renamed, or is temporarily unavailable.
+      <p className={`text-base max-w-md ${dark ? 'text-gray-400' : 'text-ink-blue/60'}`}>
+        The page you're looking for may have been moved, renamed, or never filed.
       </p>
 
-      {/* Back to Home Button */}
       <Link
         to="/"
-        className="mt-6 px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition duration-300"
+        className="mt-4 px-6 py-3 rounded-full bg-brass text-ink font-semibold hover:bg-brass/90 transition-colors"
       >
-        Return to Home
+        Return to home
       </Link>
     </div>
   );

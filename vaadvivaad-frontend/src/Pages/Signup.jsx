@@ -68,7 +68,7 @@ const Signup = () => {
       footer={
         <p className={`text-sm ${dark ? "text-gray-400" : "text-gray-600"}`}>
           Already have an account?{" "}
-          <Link to="/login" className="font-semibold text-[#d4af37] hover:underline">
+          <Link to="/login" className="font-semibold text-[#C7A046] hover:underline">
             Sign in
           </Link>
         </p>
@@ -125,15 +125,15 @@ const Signup = () => {
             type="checkbox"
             checked={agreed}
             onChange={(e) => setAgreed(e.target.checked)}
-            className="mt-0.5 h-4 w-4 flex-shrink-0 rounded border-gray-400 text-[#d4af37] focus:ring-[#d4af37]"
+            className="mt-0.5 h-4 w-4 flex-shrink-0 rounded border-gray-400 text-[#C7A046] focus:ring-[#C7A046]"
           />
           <span className={`text-xs leading-relaxed ${dark ? "text-gray-400" : "text-gray-600"}`}>
             I agree to the{" "}
-            <a href="#" className={`font-medium hover:underline ${dark ? "text-[#d4af37]" : "text-[#0a2463]"}`}>
+            <a href="#" className={`font-medium hover:underline ${dark ? "text-[#C7A046]" : "text-[#1B2A4A]"}`}>
               Terms of Service
             </a>{" "}
             and{" "}
-            <a href="#" className={`font-medium hover:underline ${dark ? "text-[#d4af37]" : "text-[#0a2463]"}`}>
+            <a href="#" className={`font-medium hover:underline ${dark ? "text-[#C7A046]" : "text-[#1B2A4A]"}`}>
               Privacy Policy
             </a>
           </span>
@@ -144,11 +144,11 @@ const Signup = () => {
           disabled={isSubmitting}
           whileHover={{ scale: isSubmitting ? 1 : 1.01 }}
           whileTap={{ scale: isSubmitting ? 1 : 0.98 }}
-          className={`group relative w-full flex items-center justify-center gap-2 overflow-hidden rounded-lg py-3 text-sm font-semibold text-[#0a2463] transition-all ${
+          className={`group relative w-full flex items-center justify-center gap-2 overflow-hidden rounded-lg py-3 text-sm font-semibold text-[#1B2A4A] transition-all ${
             isSubmitting ? "cursor-not-allowed opacity-70" : ""
           }`}
           style={{
-            backgroundImage: "linear-gradient(135deg, #f5d78c 0%, #d4af37 55%, #b8912a 100%)",
+            backgroundImage: "linear-gradient(135deg, #DBB968 0%, #C7A046 55%, #A8813A 100%)",
           }}
         >
           {isSubmitting ? (
