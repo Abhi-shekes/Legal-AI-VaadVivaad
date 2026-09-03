@@ -1,86 +1,97 @@
-import React from 'react';
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faFileAlt, faClipboardList, faFingerprint, faSpinner, faPlay, faSave } from "@fortawesome/free-solid-svg-icons";
+import { FileText, Fingerprint, Loader2, Save, ArrowRight } from "lucide-react"
 
 const CaseForm = ({
-    incident,
-    setIncident,
-    evidence,
-    setEvidence,
-    isSubmitting,
-    isDebateConcluded,
-    handleSubmit
+  incident,
+  setIncident,
+  evidence,
+  setEvidence,
+  isSubmitting,
+  isDebateConcluded,
+  handleSubmit,
+  dark,
 }) => {
-    return (
-        <div className="w-full xl:w-96">
-            <div className="legal-card legal-shadow rounded-2xl sticky top-8 overflow-hidden">
-                <div className="legal-gradient text-white px-8 py-6">
-                    <div className="flex items-center space-x-3">
-                        <FontAwesomeIcon icon={faFileAlt} className="text-xl" />
-                        <div>
-                            <h2 className="text-xl font-bold">Case Submission</h2>
-                            <p className="text-blue-100 text-sm">Provide case details</p>
-                        </div>
-                    </div>
-                </div>
+  const muted = dark ? "text-gray-400" : "text-ink-blue/60"
+  const faint = dark ? "text-gray-500" : "text-ink-blue/50"
 
-                <form onSubmit={handleSubmit} className="p-8 space-y-6">
-                    <div>
-                        <label
-                            className="flex items-center text-sm font-semibold text-gray-700 mb-3"
-                            htmlFor="incident_description"
-                        >
-                            <FontAwesomeIcon icon={faClipboardList} className="text-gray-500 mr-2" />
-                            Incident Description
-                        </label>
-                        <textarea
-                            id="incident_description"
-                            value={incident}
-                            onChange={(e) => setIncident(e.target.value)}
-                            className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 resize-none"
-                            rows="6"
-                            placeholder="Provide a detailed description of the incident, including all relevant circumstances, parties involved, and sequence of events..."
-                            required
-                            disabled={isDebateConcluded}
-                        />
-                    </div>
-
-                    <div>
-                        <label className="flex items-center text-sm font-semibold text-gray-700 mb-3" htmlFor="evidence">
-                            <FontAwesomeIcon icon={faFingerprint} className="text-gray-500 mr-2" />
-                            Supporting Evidence
-                        </label>
-                        <textarea
-                            id="evidence"
-                            value={evidence}
-                            onChange={(e) => setEvidence(e.target.value)}
-                            className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 resize-none"
-                            rows="6"
-                            placeholder="List all relevant evidence including documents, witness statements, physical evidence, expert opinions, and any supporting materials..."
-                            required
-                            disabled={isDebateConcluded}
-                        />
-                    </div>
-
-                    <button
-                        type="submit"
-                        disabled={isSubmitting}
-                        className="w-full legal-gradient text-white px-6 py-4 rounded-xl hover:shadow-lg transition-all duration-300 ease-in-out flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 active:scale-100 font-semibold text-lg"
-                    >
-                        <FontAwesomeIcon
-                            icon={isSubmitting ? faSpinner : isDebateConcluded ? faSave : faPlay}
-                            className={`mr-3 text-xl ${isSubmitting && "animate-spin"}`}
-                        />
-                        {isSubmitting
-                            ? "Processing..."
-                            : isDebateConcluded
-                                ? "Save Case"
-                                : "Initiate Legal Debate"}
-                    </button>
-                </form>
-            </div>
+  return (
+    <div className="w-full xl:w-96 flex-shrink-0">
+      <div className={`rounded-xl border sticky top-24 overflow-hidden ${dark ? "bg-white/[0.03] border-white/10" : "bg-white border-ink-blue/10 shadow-sm"}`}>
+        <div className={`px-6 py-5 border-b ${dark ? "border-white/10" : "border-ink-blue/10"}`}>
+          <p className="docket-label text-[11px] text-brass mb-1.5">New filing</p>
+          <h2 className="font-display text-xl">File your case</h2>
         </div>
-    )
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          <div>
+            <label htmlFor="incident_description" className={`flex items-center gap-2 text-xs font-medium mb-2 ${muted}`}>
+              <FileText size={14} className="text-brass" />
+              Incident description
+            </label>
+            <textarea
+              id="incident_description"
+              value={incident}
+              onChange={(e) => setIncident(e.target.value)}
+              rows={6}
+              required
+              disabled={isDebateConcluded}
+              placeholder="Describe the incident in detail — what happened, who was involved, and the sequence of events…"
+              className={`w-full rounded-lg px-4 py-3 text-sm resize-none transition-colors focus:outline-none focus:ring-2 focus:ring-brass disabled:opacity-50 ${dark
+                ? "bg-white/5 border border-white/10 text-white placeholder:text-gray-500"
+                : "bg-parchment/50 border border-ink-blue/10 text-ink-blue placeholder:text-ink-blue/30"
+                }`}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="evidence" className={`flex items-center gap-2 text-xs font-medium mb-2 ${muted}`}>
+              <Fingerprint size={14} className="text-brass" />
+              Supporting evidence
+            </label>
+            <textarea
+              id="evidence"
+              value={evidence}
+              onChange={(e) => setEvidence(e.target.value)}
+              rows={6}
+              required
+              disabled={isDebateConcluded}
+              placeholder="List documents, witness statements, physical evidence, or other supporting material…"
+              className={`w-full rounded-lg px-4 py-3 text-sm resize-none transition-colors focus:outline-none focus:ring-2 focus:ring-brass disabled:opacity-50 ${dark
+                ? "bg-white/5 border border-white/10 text-white placeholder:text-gray-500"
+                : "bg-parchment/50 border border-ink-blue/10 text-ink-blue placeholder:text-ink-blue/30"
+                }`}
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full inline-flex items-center justify-center gap-2 bg-brass text-ink font-semibold py-3.5 rounded-full text-sm shadow-[0_0_30px_-8px_rgba(199,160,70,0.6)] transition-all hover:bg-brass/90 disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                Processing…
+              </>
+            ) : isDebateConcluded ? (
+              <>
+                <Save size={16} />
+                Save case
+              </>
+            ) : (
+              <>
+                Begin the debate
+                <ArrowRight size={16} />
+              </>
+            )}
+          </button>
+
+          <p className={`text-[11px] text-center leading-relaxed ${faint}`}>
+            Grounded in IPC search and precedent — argued from both sides.
+          </p>
+        </form>
+      </div>
+    </div>
+  )
 }
 
-export default CaseForm;
+export default CaseForm

@@ -1,15 +1,20 @@
 import { useState, useEffect, useRef } from "react"
+import { Link } from "react-router-dom"
 import { io } from "socket.io-client"
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import { faBalanceScale, faCheckCircle, faSpinner, faLink } from "@fortawesome/free-solid-svg-icons"
+import { ArrowLeft } from "lucide-react"
 import CaseForm from "../components/case/CaseForm"
 import DebateChat from "../components/case/DebateChat"
+import AppHeader from "../components/AppHeader"
 import useAuthStore from "../store/authStore"
+import themeStore from "../store/themeStore"
+import useLogout from "../hooks/useLogout"
 
-// Main Component with enhanced design
 const Case = () => {
   // State
   const { user } = useAuthStore((state) => state)
+  const { theme, changeTheme } = themeStore((state) => state)
+  const dark = theme === "dark"
+  const handleLogout = useLogout()
   const [incident, setIncident] = useState("")
   const [evidence, setEvidence] = useState("")
   const [messages, setMessages] = useState([])
@@ -51,7 +56,7 @@ const Case = () => {
     }
 
     setIsSubmitting(true)
-    addMessage({ type: "status", message: "Saving debate to database...", icon: faSpinner, title: "Saving" })
+    addMessage({ type: "status", message: "Saving debate to database...", status: "loading", title: "Saving" })
 
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/user/save-debate`, {
@@ -71,7 +76,7 @@ const Case = () => {
         throw new Error(err.detail || "Failed to save debate to database.")
       }
 
-      addMessage({ type: "status", message: "Debate saved successfully!", icon: faCheckCircle, title: "Saved" })
+      addMessage({ type: "status", message: "Debate saved successfully!", status: "success", title: "Saved" })
       // Reset state for new case
       setIsDebateConcluded(false)
       setDebateData(null)
@@ -105,7 +110,7 @@ const Case = () => {
       socket.current.disconnect()
     }
 
-    addMessage({ type: "status", message: "Submitting case details...", icon: faSpinner, title: "Initializing" })
+    addMessage({ type: "status", message: "Submitting case details...", status: "loading", title: "Initializing" })
 
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/user/start-case`, {
@@ -123,7 +128,7 @@ const Case = () => {
         throw new Error(err.detail || "Failed to initialize case on server.")
       }
 
-      addMessage({ type: "status", message: "Connecting to debate server...", icon: faLink, title: "Connecting" })
+      addMessage({ type: "status", message: "Connecting to debate server...", status: "loading", title: "Connecting" })
 
       const socketUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL
       socket.current = io(socketUrl, { transports: ["websocket"] })
@@ -136,7 +141,7 @@ const Case = () => {
         addMessage({
           type: "status",
           message: "Connected! Waiting for debate to begin...",
-          icon: faCheckCircle,
+          status: "success",
           title: "Success",
         })
       })
@@ -187,55 +192,56 @@ const Case = () => {
   }
 
   return (
-    <>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-        <div className="max-w-[80vw] mx-auto px-4 py-8">
-          {/* Enhanced Header */}
-          <header className="mb-12 text-center">
-            <div className="flex items-center justify-center mb-6">
-              <div className="w-16 h-16 gold-gradient rounded-full flex items-center justify-center mr-4 legal-shadow">
-                <FontAwesomeIcon icon={faBalanceScale} className="text-white text-2xl" />
-              </div>
-              <div>
-                <h1 className="text-5xl font-bold text-gray-800 mb-2">
-                  <span style={{ color: "var(--legal-gold)" }} className="ml-2">
-                    Vaad
-                  </span>
-                  <span className="text-gray-600 ml-2">Vivaad</span>
-                </h1>
-                <div className="h-1 w-32 gold-gradient rounded-full mx-auto"></div>
-              </div>
-            </div>
-            <p className="text-gray-600 max-w-3xl mx-auto text-lg leading-relaxed">
-              Experience the future of legal analysis with our AI-powered courtroom simulation. Present your case and
-              witness a comprehensive debate between virtual legal counsels.
-            </p>
-          </header>
+    <div className={`min-h-screen ${dark ? "bg-ink text-white" : "bg-parchment text-ink-blue"}`}>
+      <AppHeader
+        dark={dark}
+        changeTheme={changeTheme}
+        user={user}
+        onLogout={handleLogout}
+        center={
+          <Link
+            to="/user/dashboard"
+            className={`inline-flex items-center gap-1.5 text-sm font-medium transition-colors ${dark ? "text-gray-400 hover:text-white" : "text-ink-blue/60 hover:text-ink-blue"}`}
+          >
+            <ArrowLeft size={14} />
+            Back to dashboard
+          </Link>
+        }
+      />
 
-          <main className="flex flex-col xl:flex-row gap-8">
-            {/* Enhanced Debate Output */}
-            <DebateChat
-              messages={messages}
-              isSubmitting={isSubmitting}
-              isConnected={isConnected}
-              typingState={typingState}
-              debateOutputRef={debateOutputRef}
-            />
-
-            {/* Enhanced Case Input Form */}
-            <CaseForm
-              incident={incident}
-              setIncident={setIncident}
-              evidence={evidence}
-              setEvidence={setEvidence}
-              isSubmitting={isSubmitting}
-              isDebateConcluded={isDebateConcluded}
-              handleSubmit={handleFormSubmit}
-            />
-          </main>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 md:px-10 py-10 md:py-12">
+        <div className="mb-8">
+          <p className="docket-label text-xs text-brass mb-2">New filing</p>
+          <h1 className="font-display text-3xl md:text-4xl mb-2">File your case</h1>
+          <p className={`text-sm md:text-base max-w-2xl ${dark ? "text-gray-400" : "text-ink-blue/60"}`}>
+            Describe the incident and evidence — the record gets searched for the relevant IPC section and
+            precedent, then both sides argue it out.
+          </p>
         </div>
-      </div>
-    </>
+
+        <div className="flex flex-col xl:flex-row gap-8">
+          <DebateChat
+            messages={messages}
+            isSubmitting={isSubmitting}
+            isConnected={isConnected}
+            typingState={typingState}
+            debateOutputRef={debateOutputRef}
+            dark={dark}
+          />
+
+          <CaseForm
+            incident={incident}
+            setIncident={setIncident}
+            evidence={evidence}
+            setEvidence={setEvidence}
+            isSubmitting={isSubmitting}
+            isDebateConcluded={isDebateConcluded}
+            handleSubmit={handleFormSubmit}
+            dark={dark}
+          />
+        </div>
+      </main>
+    </div>
   )
 }
 

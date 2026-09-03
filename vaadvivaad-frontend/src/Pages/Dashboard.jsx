@@ -2,14 +2,15 @@ import { useState, useEffect, useMemo } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
 import {
-  LogOut, Plus, Search, Sun, Moon, FileStack, CalendarClock, Clock3,
+  Plus, Search, FileStack, CalendarClock, Clock3,
   ArrowRight, MessagesSquare, ShieldCheck,
 } from "lucide-react"
 import RecentCasesList from "../components/RecentCasesList"
+import AppHeader from "../components/AppHeader"
 import useAuthStore from "../store/authStore"
 import themeStore from "../store/themeStore"
+import useLogout from "../hooks/useLogout"
 import axios from "axios"
-import logo from "../assets/nyayavada_logo.png"
 
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 16 },
@@ -24,7 +25,7 @@ const STEPS = [
 ]
 
 export default function Dashboard() {
-  const { user, setLogOut } = useAuthStore()
+  const { user } = useAuthStore()
   const { theme, changeTheme } = themeStore((state) => state)
   const dark = theme === "dark"
 
@@ -51,19 +52,7 @@ export default function Dashboard() {
     fetchRecentCases()
   }, [apiUrl])
 
-  const handleLogout = async () => {
-    try {
-      const resp = await axios.post(`${apiUrl}/auth/logout`, {}, { withCredentials: true })
-      if (resp.data.status === "success") {
-        setLogOut()
-        navigate("/login")
-      }
-    } catch (error) {
-      console.error("Error logging out:", error)
-      setLogOut()
-      navigate("/login")
-    }
-  }
+  const handleLogout = useLogout()
 
   // Real, honest stats derived from what the API actually returns --
   // no fabricated "success rate" with nothing behind it.
@@ -91,17 +80,13 @@ export default function Dashboard() {
 
   return (
     <div className={`min-h-screen ${dark ? "bg-ink text-white" : "bg-parchment text-ink-blue"}`}>
-      {/* Header -- full width, no capped column */}
-      <header className={`border-b ${dark ? "border-white/10 bg-ink/90" : "border-ink-blue/10 bg-parchment/90"} backdrop-blur-md sticky top-0 z-30`}>
-        <div className="w-full px-4 sm:px-6 md:px-10 h-16 md:h-20 flex items-center justify-between gap-4">
-          <Link to="/" className="flex items-center gap-2.5 flex-shrink-0">
-            <img src={logo} alt="VaadVivaad" className="h-8 md:h-9 w-auto" />
-            <span className="hidden sm:block font-display text-lg leading-none">
-              Vaad<span className="text-brass">Vivaad</span>
-            </span>
-          </Link>
-
-          <div className="flex-1 max-w-md relative hidden sm:block">
+      <AppHeader
+        dark={dark}
+        changeTheme={changeTheme}
+        user={user}
+        onLogout={handleLogout}
+        center={
+          <div className="relative">
             <Search size={15} className={`absolute left-3.5 top-1/2 -translate-y-1/2 ${faint}`} />
             <input
               type="text"
@@ -114,33 +99,8 @@ export default function Dashboard() {
                 }`}
             />
           </div>
-
-          <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
-            <button
-              onClick={changeTheme}
-              className={`p-2 rounded-full transition-colors ${dark ? "text-brass hover:bg-white/10" : "text-ink-blue/70 hover:bg-ink-blue/5"}`}
-              aria-label="Toggle theme"
-            >
-              {theme === "light" ? <Moon size={16} /> : <Sun size={16} />}
-            </button>
-            {user && (
-              <div className="hidden md:flex items-center gap-2 pr-2 border-r border-current/10" title={user.email}>
-                <div className="w-7 h-7 rounded-full bg-brass/15 text-brass flex items-center justify-center font-mono text-xs font-medium">
-                  {displayName.charAt(0).toUpperCase()}
-                </div>
-                <span className={`text-sm ${muted}`}>{displayName}</span>
-              </div>
-            )}
-            <button
-              onClick={handleLogout}
-              className={`p-2 rounded-full transition-colors ${dark ? "text-gray-400 hover:text-white hover:bg-white/10" : "text-ink-blue/60 hover:text-ink-blue hover:bg-ink-blue/5"}`}
-              aria-label="Logout"
-            >
-              <LogOut size={16} />
-            </button>
-          </div>
-        </div>
-      </header>
+        }
+      />
 
       {/* Welcome band -- full width, aurora glow, matches Landing's hero/CTA treatment */}
       <section className="relative overflow-hidden bg-ink-blue px-4 sm:px-6 md:px-10 py-14 md:py-20">
