@@ -5,7 +5,7 @@ import { motion, useAnimation } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import {
   Scale, Search, ShieldCheck, History, MessagesSquare, ArrowRight,
-  Sparkles, Database, Radio, Archive, Gavel, Landmark, ClipboardList,
+  Sparkles, Radio, Archive, Gavel, Landmark, ClipboardList, FileText, Swords,
 } from 'lucide-react';
 
 const EXHIBITS = [
@@ -57,11 +57,49 @@ const STEPS = [
   },
 ];
 
-const STACK = [
-  { icon: Sparkles, name: 'Gemini', body: 'Drafts every argument and computes the embeddings behind search.' },
-  { icon: Database, name: 'Qdrant', body: 'Self-hosted vector search over case law, IPC sections and evidence.' },
-  { icon: Radio, name: 'Socket.IO', body: 'Streams each round of the debate to you live, not in one batch.' },
-  { icon: Archive, name: 'MongoDB', body: 'Keeps your case history private and tied to your account.' },
+const PIPELINE = [
+  {
+    stage: '01',
+    tag: 'Intake',
+    icon: FileText,
+    title: 'Case intake',
+    body: 'Incident and evidence normalized into a structured prompt.',
+  },
+  {
+    stage: '02',
+    tag: 'Gemini',
+    icon: Sparkles,
+    title: 'Prompt refinement',
+    body: 'Classified and rewritten into a retrieval-ready query.',
+  },
+  {
+    stage: '03',
+    tag: 'Qdrant',
+    icon: Search,
+    title: 'Semantic retrieval',
+    body: 'Embedded and matched against case law, IPC sections and evidence corpora.',
+  },
+  {
+    stage: '04',
+    tag: 'Gemini',
+    icon: Swords,
+    title: 'Adversarial synthesis',
+    body: 'Supporting and opposing counsel drafted from the retrieved context.',
+  },
+  {
+    stage: '05',
+    tag: 'Socket.IO',
+    icon: Radio,
+    title: 'Real-time transport',
+    body: 'Every round streamed the moment it\'s generated, not batched.',
+  },
+  {
+    stage: '06',
+    tag: 'MongoDB',
+    icon: Archive,
+    title: 'Case ledger',
+    body: 'The full exchange committed to your private history.',
+  },
 ];
 
 const FAQS = [
@@ -378,29 +416,51 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* ---------- Built on: tech stack strip ---------- */}
-      <section className="py-16 md:py-20 px-4 sm:px-6 md:px-10">
+      {/* ---------- System architecture: pipeline flow diagram ---------- */}
+      <section className={`py-16 md:py-24 px-4 sm:px-6 md:px-10 ${dark ? 'bg-white/[0.02]' : 'bg-white'}`}>
         <div className="max-w-7xl mx-auto">
-          <motion.div {...fadeUp()} className="mb-10 md:mb-12 text-center">
-            <p className={`docket-label text-xs mb-3 ${faint}`}>Under the hood</p>
-            <h2 className="font-display text-3xl md:text-4xl">No black box.</h2>
+          <motion.div {...fadeUp()} className="mb-6 text-center">
+            <p className={`docket-label text-xs mb-3 ${faint}`}>System architecture</p>
+            <h2 className="font-display text-3xl md:text-4xl mb-4">No black box.</h2>
+            <p className={`max-w-2xl mx-auto text-sm md:text-base ${muted}`}>
+              A retrieval-augmented, adversarial debate pipeline — every stage inspectable, nothing hidden behind one opaque prompt.
+            </p>
           </motion.div>
 
-          <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
-            {STACK.map((t, i) => (
+          <div className="relative mt-14 md:mt-16">
+            {/* connecting flow line — single row only from xl up */}
+            <div className={`hidden xl:block absolute top-8 left-[6%] right-[6%] h-px ${dark ? 'bg-white/10' : 'bg-ink-blue/10'}`}>
               <motion.div
-                key={t.name}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
+                initial={{ scaleX: 0 }}
+                whileInView={{ scaleX: 1 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: i * 0.08 }}
-                className={`rounded-lg p-5 border ${dark ? 'bg-white/[0.03] border-white/10' : 'bg-white border-ink-blue/10'}`}
-              >
-                <t.icon size={18} className="text-brass mb-3" />
-                <h3 className="font-semibold text-sm mb-1.5">{t.name}</h3>
-                <p className={`text-xs leading-relaxed ${muted}`}>{t.body}</p>
-              </motion.div>
-            ))}
+                transition={{ duration: 1.6, ease: 'easeInOut' }}
+                style={{ originX: 0 }}
+                className="h-full bg-gradient-to-r from-verdict via-brass to-dissent"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-x-4 gap-y-10">
+              {PIPELINE.map((s, i) => (
+                <motion.div
+                  key={s.stage}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: i * 0.1 }}
+                  className="relative flex flex-col items-center text-center px-2"
+                >
+                  <div className={`relative z-10 w-16 h-16 rounded-2xl flex items-center justify-center mb-4 border ${dark ? 'bg-ink border-brass/30 text-brass' : 'bg-parchment border-brass/30 text-brass'}`}>
+                    <s.icon size={22} />
+                  </div>
+                  <p className={`font-mono text-[10px] tracking-wide mb-1.5 ${faint}`}>
+                    {s.stage} · {s.tag}
+                  </p>
+                  <h3 className="font-semibold text-sm mb-1.5">{s.title}</h3>
+                  <p className={`text-xs leading-relaxed ${muted}`}>{s.body}</p>
+                </motion.div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
