@@ -86,7 +86,8 @@ export default function Dashboard() {
 
   const muted = dark ? "text-gray-400" : "text-ink-blue/60"
   const faint = dark ? "text-gray-500" : "text-ink-blue/50"
-  const firstName = user ? user.split("@")[0] : "there"
+  const displayName = user?.name || user?.email || "there"
+  const firstName = user?.name ? user.name.split(" ")[0] : displayName
 
   return (
     <div className={`min-h-screen ${dark ? "bg-ink text-white" : "bg-parchment text-ink-blue"}`}>
@@ -123,11 +124,11 @@ export default function Dashboard() {
               {theme === "light" ? <Moon size={16} /> : <Sun size={16} />}
             </button>
             {user && (
-              <div className="hidden md:flex items-center gap-2 pr-2 border-r border-current/10">
+              <div className="hidden md:flex items-center gap-2 pr-2 border-r border-current/10" title={user.email}>
                 <div className="w-7 h-7 rounded-full bg-brass/15 text-brass flex items-center justify-center font-mono text-xs font-medium">
-                  {user.charAt(0).toUpperCase()}
+                  {displayName.charAt(0).toUpperCase()}
                 </div>
-                <span className={`text-sm ${muted}`}>{user}</span>
+                <span className={`text-sm ${muted}`}>{displayName}</span>
               </div>
             )}
             <button

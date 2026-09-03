@@ -36,7 +36,8 @@ const Login = () => {
 
       if (resp.data.status === "success") {
         toast.success("Welcome back! Redirecting to your dashboard…");
-        setLogIn(email, "user");
+        const { name, email: confirmedEmail } = resp.data.data || {};
+        setLogIn({ name: name || "", email: confirmedEmail || email }, "user");
         setTimeout(() => navigate("/user/dashboard"), 900);
       } else {
         const msg = resp.data.message || "Login failed";

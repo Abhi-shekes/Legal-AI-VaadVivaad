@@ -61,7 +61,7 @@ const Case = () => {
           debate_history: debateData.debate_history,
           ipc_section: debateData.ipc_section,
           similar_case: debateData.similar_case,
-          user_id: user,
+          user_id: user?.email || "",
         }),
         credentials: "include"
       })
