@@ -125,7 +125,8 @@ const Case = () => {
 
       addMessage({ type: "status", message: "Connecting to debate server...", icon: faLink, title: "Connecting" })
 
-      socket.current = io("https://nyayapravah.info", { transports: ["websocket"] })
+      const socketUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL
+      socket.current = io(socketUrl, { transports: ["websocket"] })
 
       socket.current.on("connect", () => {
         setIsConnected(true)

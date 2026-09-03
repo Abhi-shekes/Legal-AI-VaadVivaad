@@ -1,4 +1,6 @@
 import { Routes, Route } from "react-router-dom";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import Landing from "./Pages/Landing";
 import Login from "./Pages/Login";
 import Signup from "./Pages/Signup";
@@ -19,6 +21,8 @@ function App() {
   const { role } = authStore((state) => state);
 
   return (
+    <>
+    <ToastContainer position="top-right" theme="colored" autoClose={3500} newestOnTop />
     <Routes>
       {/* Public Routes */}
       <Route element={<PublicLayout />}>
@@ -79,6 +83,7 @@ function App() {
       {/* Catch-All Route */}
       <Route path="*" element={<Page404 />} />
     </Routes>
+    </>
   );
 }
 

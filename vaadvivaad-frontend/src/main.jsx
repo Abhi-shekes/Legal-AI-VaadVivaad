@@ -8,7 +8,7 @@ import { BrowserRouter } from 'react-router-dom'
 
 
 createRoot(document.getElementById('root')).render(
- <BrowserRouter basename="/vaadvivaad">
+ <BrowserRouter basename={import.meta.env.BASE_URL}>
       <Theme>
       <App />
 		</Theme>
