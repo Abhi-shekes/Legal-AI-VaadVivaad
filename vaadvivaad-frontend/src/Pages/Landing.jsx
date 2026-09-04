@@ -234,21 +234,30 @@ const prefersReducedMotion = () =>
 
 /** Types a string out once, when it scrolls into view. */
 function StreamLine({ text, className = '', speed = 22 }) {
-  const [shown, setShown] = useState(prefersReducedMotion() ? text : '');
-  const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.6 });
+  const reduced = prefersReducedMotion();
+  const [count, setCount] = useState(reduced ? text.length : 0);
+  const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.4 });
 
+  // `count` is deliberately NOT a dependency: it changes on every tick, and
+  // re-running the effect each time would restart the interval from zero and
+  // pin the text at its first character.
   useEffect(() => {
-    if (!inView || prefersReducedMotion() || shown === text) return;
-    let i = 0;
+    if (!inView || reduced) return undefined;
+    setCount(0);
     const id = setInterval(() => {
-      i += 1;
-      setShown(text.slice(0, i));
-      if (i >= text.length) clearInterval(id);
+      setCount((c) => {
+        if (c >= text.length) {
+          clearInterval(id);
+          return c;
+        }
+        return c + 1;
+      });
     }, speed);
     return () => clearInterval(id);
-  }, [inView, text, speed, shown]);
+  }, [inView, reduced, text, speed]);
 
-  const typing = shown.length < text.length;
+  const shown = text.slice(0, count);
+  const typing = count < text.length;
   return (
     <span ref={ref} className={className}>
       {shown}
