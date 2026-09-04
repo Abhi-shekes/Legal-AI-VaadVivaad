@@ -11,6 +11,20 @@ exportable.
 It runs on free and self-hosted parts. **Google Gemini is the only external
 account**, and several features exist specifically to make even that optional.
 
+### Watch the launch film — 76 seconds
+
+<video src="https://raw.githubusercontent.com/Abhi-shekes/Legal-AI-VaadVivaad/main/docs/media/vaadvivaad-launch.mp4" poster="https://raw.githubusercontent.com/Abhi-shekes/Legal-AI-VaadVivaad/main/docs/media/launch-poster.png" controls muted playsinline width="100%"></video>
+
+<p align="center">
+  <a href="https://raw.githubusercontent.com/Abhi-shekes/Legal-AI-VaadVivaad/main/docs/media/vaadvivaad-launch.mp4">
+    <img src="docs/media/launch-poster.png" alt="Play the launch film" width="100%">
+  </a>
+  <br>
+  <em>If the player above does not load, click the image — 76s, with sound and captions.</em>
+</p>
+
+---
+
 ![The Docket](docs/screenshots/16-docket.png)
 
 <p align="center"><em>The Docket — every matter you have filed, which way the
