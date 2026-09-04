@@ -17,6 +17,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Dict, Iterable, List, Sequence, Tuple
 
+from app.core import metrics
 from app.core.logging import get_logger
 from app.domain.schemas import ArgumentTurn, Precedent
 
@@ -147,7 +148,10 @@ def verify_turn(turn: ArgumentTurn, precedents: Sequence[Precedent]) -> Verifica
         "relies_on": verified,
     })
 
+    metrics.inc("vaadvivaad_citations_total", len(verified), status="verified")
     if unsupported or prose_offenders:
+        metrics.inc("vaadvivaad_citations_total",
+                    len(unsupported) + len(prose_offenders), status="stripped")
         log.warning(
             "citations.unsupported",
             extra={"ids": unsupported[:5], "names": prose_offenders[:5],

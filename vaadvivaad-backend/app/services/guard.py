@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from typing import List, Optional
 
 from app.core.llm import FAST, TokenLedger, llm
+from app.core import metrics
 from app.core.logging import get_logger
 from app.domain.schemas import ScopeAssessment, ScopeDecision
 from app.security import prompting
@@ -153,6 +154,7 @@ async def screen(
     if early is not None:
         early.injection_signals = signals
         early.pii_kinds = pii
+        metrics.inc("vaadvivaad_guard_decisions_total", decision=early.decision.value)
         log.info("guard.prefiltered", extra={"decision": early.decision.value})
         return early
 
@@ -194,6 +196,7 @@ async def screen(
         injection_signals=signals,
         pii_kinds=pii,
     )
+    metrics.inc("vaadvivaad_guard_decisions_total", decision=result.decision.value)
     log.info("guard.decision", extra={"decision": result.decision.value,
                                       "welfare": welfare,
                                       "injection": bool(signals)})

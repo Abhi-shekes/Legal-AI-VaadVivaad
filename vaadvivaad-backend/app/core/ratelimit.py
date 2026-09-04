@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from typing import Optional, Tuple
 
 from app.core.errors import RateLimited
+from app.core import metrics
 from app.core.logging import get_logger
 from app.core.store import get_store
 
@@ -53,6 +54,7 @@ async def check(bucket: str, subject: str, limit: Limit, *, cost: int = 1) -> Tu
     if used > limit.times:
         # Approximate: the window's true remaining time is not exposed by the
         # interface, and over-reporting would be worse than under-reporting.
+        metrics.inc("vaadvivaad_ratelimit_blocked_total", bucket=bucket)
         log.warning("ratelimit.blocked",
                     extra={"bucket": bucket, "subject": subject[:40],
                            "used": used, "limit": str(limit)})

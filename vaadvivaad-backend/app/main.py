@@ -12,11 +12,12 @@ import socketio
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 
 from app.api.routes import auth, cases
 from app.core.config import settings
 from app.core.errors import RateLimited, VaadVivaadError
+from app.core import metrics
 from app.core.logging import bind, configure, get_logger, new_request_id
 from app.core.logging import context as log_context
 from app.core.qdrant_client import close_client, ensure_all
@@ -115,6 +116,26 @@ async def handle_validation(request: Request, exc: RequestValidationError):
 @app.get("/health", include_in_schema=False)
 async def health():
     return {"status": "ok", "version": app.version}
+
+
+@app.get("/metrics", include_in_schema=False)
+async def prometheus_metrics():
+    """Prometheus exposition.
+
+    Scrape it with whatever you run; Prometheus and Grafana are both open
+    source and both optional. Nothing here leaves the machine on its own.
+    """
+    from app.core.qdrant_client import CASE_LAWS, count
+
+    try:
+        metrics.gauge("vaadvivaad_corpus_size", await count(CASE_LAWS),
+                      collection=CASE_LAWS)
+    except Exception:
+        pass  # a metrics endpoint must not fail because a dependency is down
+    metrics.gauge("vaadvivaad_build_info", 1, version=app.version,
+                  model=settings.fast_model)
+    return PlainTextResponse(metrics.render(),
+                             media_type="text/plain; version=0.0.4; charset=utf-8")
 
 
 @app.get("/ready", include_in_schema=False)

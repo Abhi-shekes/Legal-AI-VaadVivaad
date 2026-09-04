@@ -16,6 +16,10 @@ Rules this pipeline enforces:
     output become retrievable, which is exactly that attack, self-inflicted);
   * ingest is idempotent — re-running it updates rather than duplicating.
 
+Sources are the free official publishers -- the Supreme Court judgment
+portal, eCourts, India Code and the Gazette. No commercial legal database is
+required or supported.
+
 Run it with:  python -m app.services.ingest.pipeline --source fixtures.jsonl
 """
 
@@ -43,7 +47,18 @@ log = get_logger(__name__)
 
 # Sources whose documents may be marked `verified`. Anything else is indexed
 # as unverified and will never be offered to counsel as citable authority.
-TRUSTED_SOURCES = {"indiankanoon", "sci-archive", "ecourts", "gazette", "curated"}
+#
+# All of these are free, official, publicly funded publishers. Deliberately
+# no commercial legal databases: this project runs on free and self-hosted
+# parts, with Gemini as the single external paid-capable service.
+#
+#   sci        Supreme Court of India judgment portal
+#   ecourts    eCourts / District & High Court judgment services
+#   indiacode  India Code -- the government's bare-acts repository
+#   egazette   The Gazette of India, for amendments and commencement dates
+#   njdg       National Judicial Data Grid
+#   curated    Hand-entered and hand-checked by a maintainer
+TRUSTED_SOURCES = {"sci", "ecourts", "indiacode", "egazette", "njdg", "curated"}
 
 _MAX_CHARS = 4000
 

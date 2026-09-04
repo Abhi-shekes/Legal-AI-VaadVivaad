@@ -33,12 +33,18 @@ class Settings(BaseSettings):
     # ── Google Gemini ────────────────────────────────────────────────────
     GOOGLE_API_KEY: str
 
-    # Model routing. Cheap, high-volume classification and extraction run on
-    # the fast tier; the Bench's reasoning and closing arguments get the
-    # stronger one. Both are "-latest" aliases on purpose: pinned model names
-    # get sunset by Google and start 404ing with no warning.
+    # Model routing. Both tiers default to flash-lite: it is the only tier
+    # whose free quota can carry a whole hearing (the larger models allow a
+    # handful of requests per minute and 429 partway through), and this
+    # project runs entirely on free and self-hosted parts with Gemini as the
+    # single external service.
+    #
+    # The two settings are kept separate rather than collapsed into one so a
+    # deployment with paid quota can point the reasoning tier at a stronger
+    # model without touching code. When they are equal the tier-fallback path
+    # is simply a no-op.
     GEMINI_MODEL_FAST: str = "gemini-flash-lite-latest"
-    GEMINI_MODEL_REASONING: str = "gemini-flash-latest"
+    GEMINI_MODEL_REASONING: str = "gemini-flash-lite-latest"
 
     # Back-compat: the old single-model setting. If someone has GEMINI_MODEL
     # in their .env, honour it as the fast tier rather than silently ignoring.

@@ -37,6 +37,7 @@ from app.core.errors import (
     LLMRateLimited,
     LLMTimeout,
 )
+from app.core import metrics
 from app.core.logging import Timer, get_logger
 from app.core.store import get_store
 
@@ -72,6 +73,7 @@ def _circuit_is_open(model: str) -> bool:
 
 def _trip_circuit(model: str) -> None:
     _CIRCUIT_OPEN_UNTIL[model] = time.monotonic() + _CIRCUIT_COOLDOWN_SECONDS
+    metrics.inc("vaadvivaad_llm_circuit_trips_total", model=model)
     log.warning("llm.circuit_open", extra={"model": model,
                                            "cooldown_s": _CIRCUIT_COOLDOWN_SECONDS})
 
@@ -478,6 +480,9 @@ class LLMClient:
 
         if ledger is not None:
             ledger.charge(step, tokens, 0)
+        metrics.inc("vaadvivaad_llm_calls_total", step=step, outcome="ok")
+        metrics.inc("vaadvivaad_llm_tokens_total", tokens, step=step)
+        metrics.observe("vaadvivaad_llm_latency_ms", timer.ms, step=step)
         log.info("llm.stream_done", extra={"step": step, "model": model,
                                            "tokens": tokens, "ms": timer.ms})
         yield ("done", value)
@@ -502,6 +507,9 @@ class LLMClient:
                     )
                 usage = getattr(response, "usage_metadata", None)
                 tokens = getattr(usage, "total_token_count", 0) or 0
+                metrics.inc("vaadvivaad_llm_calls_total", step=step, outcome="ok")
+                metrics.inc("vaadvivaad_llm_tokens_total", tokens, step=step)
+                metrics.observe("vaadvivaad_llm_latency_ms", timer.ms, step=step)
                 log.info(
                     "llm.call",
                     extra={"step": step, "model": model, "tokens": tokens,
@@ -529,6 +537,8 @@ class LLMClient:
                              extra={"model": model, "floor": _THINKING_FALLBACK})
                     continue
                 if not last.retryable or attempt == settings.LLM_MAX_ATTEMPTS:
+                    metrics.inc("vaadvivaad_llm_calls_total", step=step,
+                                outcome=last.code)
                     log.error("llm.failed", extra={"step": step, "model": model,
                                                    "attempt": attempt,
                                                    "code": last.code,

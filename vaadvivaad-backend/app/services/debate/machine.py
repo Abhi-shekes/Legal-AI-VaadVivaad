@@ -35,6 +35,7 @@ from typing import Any, Awaitable, Callable, Dict, List, Optional
 
 from app.core.config import settings
 from app.core.errors import BudgetExceeded, LLMError, VaadVivaadError
+from app.core import metrics
 from app.core.llm import FAST, REASONING, TokenLedger, llm
 from app.core.logging import Timer, get_logger, context as log_context
 from app.domain.schemas import (
@@ -430,6 +431,8 @@ class DebateMachine:
             unsupported_citations=verification.unsupported_ids + verification.unsupported_names,
             tokens=self.ledger.by_step.get(f"debate.{phase.value}.{side.value}", 0),
         )
+        metrics.inc("vaadvivaad_debate_turns_total",
+                    side=side.value, phase=phase.value)
         claim = self.context.add_turn(record)
         self.state.turns.append(record)
         self.state.claims = self.context.ledger.to_dicts()
@@ -590,6 +593,7 @@ class DebateMachine:
             "tokens": self.state.tokens,
             "unsupported_total": sum(len(t.unsupported_citations) for t in self.state.turns),
         })
+        metrics.inc("vaadvivaad_debates_total", stage="done")
         log.info("debate.done", extra={"turns": len(self.state.turns),
                                        **self.state.tokens})
 
@@ -627,6 +631,7 @@ class DebateMachine:
             **exc.to_payload(),
             "turns": len(self.state.turns),
         })
+        metrics.inc("vaadvivaad_debates_total", stage="failed")
         log.error("debate.failed", extra={"code": exc.code, "detail": exc.detail[:200]})
 
     async def _save(self) -> None:

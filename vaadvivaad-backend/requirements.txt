@@ -34,11 +34,6 @@ httptools==0.7.1
 httpx==0.28.1
 hyperframe==6.1.0
 idna==3.11
-jsonpatch==1.33
-jsonpointer==3.0.0
-langchain-core==1.2.7
-langchain-qdrant==1.1.0
-langsmith==0.6.6
 motor==3.7.1
 numpy==2.4.1
 orjson==3.11.6

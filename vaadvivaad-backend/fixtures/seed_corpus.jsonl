@@ -7,8 +7,12 @@
 // The holdings below are stated at the level of the well-established
 // proposition each case is cited for. They are NOT substitutes for the
 // judgments and carry no pin-cites. Before production use, replace this file
-// with a real ingest from Indian Kanoon / the Supreme Court archive / eCourts
-// (see app/services/ingest/pipeline.py) and have the entries checked.
+// with a real ingest from the free official publishers -- the Supreme Court
+// judgment portal, eCourts, India Code and the Gazette (see
+// app/services/ingest/pipeline.py) -- and have the entries checked.
+//
+// No commercial legal database is needed. Everything this project depends on
+// is free or self-hosted, with Gemini as the single external service.
 //
 // `source: curated` marks these as citable. Anything with an untrusted source
 // is refused by the pipeline and can never be offered to counsel.
