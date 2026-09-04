@@ -1,4 +1,3 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import themeStore from '../store/themeStore';
 
@@ -23,10 +22,10 @@ const Page404 = () => {
       </p>
       <h1 className="font-display text-7xl md:text-8xl text-brass">404</h1>
       <h2 className="font-display text-2xl md:text-3xl">
-        This page isn't on the docket.
+        This page isn’t on the docket.
       </h2>
       <p className={`text-base max-w-md ${dark ? 'text-gray-400' : 'text-ink-blue/60'}`}>
-        The page you're looking for may have been moved, renamed, or never filed.
+        The page you’re looking for may have been moved, renamed, or never filed.
       </p>
 
       <Link

@@ -17,7 +17,7 @@
  * mapping rather than two drifting copies.
  */
 
-/** A stored turn in the shape `TurnCard` expects from the socket. */
+/** A stored turn in the shape `TurnBlock` expects from the socket. */
 export function turnToSocketShape(turn, precedents = []) {
   const content = turn.content || {}
   const reliedOn = new Set(content.relies_on || [])

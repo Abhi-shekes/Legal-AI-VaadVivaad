@@ -7,6 +7,13 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 export default [
   { ignores: ['dist'] },
   {
+    // Build and tooling configs run in Node, not the browser, so they
+    // need `process`. Without this they were the only files failing
+    // lint for using it correctly.
+    files: ['*.config.js', 'vite.config.js', 'postcss.config.js'],
+    languageOptions: { globals: globals.node },
+  },
+  {
     files: ['**/*.{js,jsx}'],
     languageOptions: {
       ecmaVersion: 2020,

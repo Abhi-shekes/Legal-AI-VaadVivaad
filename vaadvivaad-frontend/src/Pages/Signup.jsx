@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { api, ApiError } from "../lib/api";
+import { useState } from "react";
+import { api } from "../lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import { User, Mail, Lock, ArrowRight, Loader2, CheckCircle2 } from "lucide-react";
