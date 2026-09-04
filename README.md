@@ -51,6 +51,8 @@ record as it stands.
 📖 **[The full walkthrough](docs/WALKTHROUGH.md)** — all 64 screenshots and
 three screen recordings, covering every page and every feature.
 
+🎬 **[Launch film storyboard](docs/AD-STORYBOARD.md)** — planned, not yet cut.
+
 ```
 ┌───────────────────────┐   HTTP + WS   ┌────────────────────────────┐
 │  vaadvivaad-frontend   │ ────────────▶ │   vaadvivaad-backend        │
