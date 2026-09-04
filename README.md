@@ -11,16 +11,18 @@ exportable.
 It runs on free and self-hosted parts. **Google Gemini is the only external
 account**, and several features exist specifically to make even that optional.
 
-### Watch the launch film — 76 seconds
-
-<video src="https://raw.githubusercontent.com/Abhi-shekes/Legal-AI-VaadVivaad/main/docs/media/vaadvivaad-launch.mp4" poster="https://raw.githubusercontent.com/Abhi-shekes/Legal-AI-VaadVivaad/main/docs/media/launch-poster.png" controls muted playsinline width="100%"></video>
+### The launch film
 
 <p align="center">
   <a href="https://raw.githubusercontent.com/Abhi-shekes/Legal-AI-VaadVivaad/main/docs/media/vaadvivaad-launch.mp4">
-    <img src="docs/media/launch-poster.png" alt="Play the launch film" width="100%">
+    <img src="docs/media/launch-preview.gif" alt="VaadVivaad — the launch film" width="100%">
   </a>
-  <br>
-  <em>If the player above does not load, click the image — 76s, with sound and captions.</em>
+</p>
+
+<p align="center">
+  <strong><a href="https://raw.githubusercontent.com/Abhi-shekes/Legal-AI-VaadVivaad/main/docs/media/vaadvivaad-launch.mp4">▶ Watch the full 76-second film</a></strong> — with voice-over and captions.<br>
+  <em>A citation is struck out before it reaches the transcript; the same
+  frame returns later beside the one that passed verification.</em>
 </p>
 
 ---
