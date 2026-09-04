@@ -11,7 +11,15 @@ scrape_configs:
     static_configs:
       - targets: ["backend:8000"]
 
-  - job_name: qdrant
-    metrics_path: /metrics
-    static_configs:
-      - targets: ["qdrant:6333"]
+  # Qdrant also exposes /metrics, but behind the same api-key as the rest of
+  # its API. To scrape it, put the key in a file mounted into this container
+  # and add here:
+  #   - job_name: qdrant
+  #     metrics_path: /metrics
+  #     http_headers:
+  #       api-key:
+  #         files: ["/etc/prometheus/qdrant-api-key"]
+  #     static_configs:
+  #       - targets: ["qdrant:6333"]
+  # The backend already publishes vaadvivaad_corpus_size, which is the one
+  # Qdrant number worth alerting on, so this is left off by default.

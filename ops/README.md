@@ -21,8 +21,13 @@ certificate, which is enough to exercise the secure-cookie path locally.
 ```bash
 docker compose --profile observability up -d
 # Prometheus  http://localhost:9090
-# Grafana     http://localhost:3000  (admin / admin on first run)
+# Grafana     http://localhost:3000  (admin / admin -- override GRAFANA_PASSWORD)
 ```
+
+Grafana comes provisioned from `ops/grafana/` — the Prometheus datasource and
+a **VaadVivaad — Overview** dashboard are there on first load, no click-through
+setup. Edit the dashboard JSON in `ops/grafana/dashboards/` and it reloads
+within 30s.
 
 The backend exposes `/metrics` in Prometheus text format with no extra
 dependency. The series worth watching:
