@@ -1,0 +1,511 @@
+"""Corpus ingest — the only thing permitted to write to Qdrant.
+
+This is the other half of the F-01/F-02 fix. Removing the write calls from
+the request path is necessary but not sufficient: something still has to put
+*real* judgments in, or retrieval returns nothing forever and the product has
+no grounding.
+
+Rules this pipeline enforces:
+
+  * every document carries provenance — where it came from, when it was
+    fetched, and under what identifier;
+  * `verified` is set only for documents from a declared, curated source, and
+    retrieval refuses to cite anything else;
+  * instruction-shaped text is stripped before indexing, because a corpus is
+    a persistent injection vector if it is not (the previous design let model
+    output become retrievable, which is exactly that attack, self-inflicted);
+  * ingest is idempotent — re-running it updates rather than duplicating.
+
+Sources are the free official publishers -- the Supreme Court judgment
+portal, eCourts, India Code and the Gazette. No commercial legal database is
+required or supported.
+
+Run it with:  python -m app.services.ingest.pipeline --source fixtures.jsonl
+"""
+
+from __future__ import annotations
+
+import argparse
+import asyncio
+import hashlib
+import json
+import re
+import sys
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any, Dict, Iterable, List, Optional
+
+from qdrant_client.http import models as qm
+
+from app.core.config import settings
+from app.core.embeddings import DENSE, SPARSE, get_embedder, get_sparse_encoder
+from app.core.logging import configure, get_logger
+from app.core.qdrant_client import (
+    CASE_LAWS,
+    STATUTES,
+    ensure_collection,
+    get_client,
+    recreate_collection,
+)
+from app.security import prompting
+from app.services import authority
+from app.services.ingest import harvest
+from app.services.retrieval import court_rank, normalise_section
+
+log = get_logger(__name__)
+
+# Sources whose documents may be marked `verified`. Anything else is indexed
+# as unverified and will never be offered to counsel as citable authority.
+#
+# All of these are free, official, publicly funded publishers. Deliberately
+# no commercial legal databases: this project runs on free and self-hosted
+# parts, with Gemini as the single external paid-capable service.
+#
+#   sci        Supreme Court of India judgment portal
+#   ecourts    eCourts / District & High Court judgment services
+#   indiacode  India Code -- the government's bare-acts repository
+#   egazette   The Gazette of India, for amendments and commencement dates
+#   njdg       National Judicial Data Grid
+#   curated    Hand-entered and hand-checked by a maintainer
+TRUSTED_SOURCES = {"sci", "ecourts", "indiacode", "egazette", "njdg", "curated"}
+
+_MAX_CHARS = 4000
+
+
+@dataclass
+class IngestStats:
+    read: int = 0
+    written: int = 0
+    skipped: int = 0
+    # Records the collection already held, so no embedding was spent on them.
+    # Reported separately from `skipped`, which means "refused".
+    skipped_existing: int = 0
+    # Citation-graph edges written (cases only).
+    edges: int = 0
+    reasons: Dict[str, int] = field(default_factory=dict)
+
+    def skip(self, reason: str) -> None:
+        self.skipped += 1
+        self.reasons[reason] = self.reasons.get(reason, 0) + 1
+
+    def as_dict(self) -> Dict[str, Any]:
+        return {"read": self.read, "written": self.written,
+                "skipped": self.skipped,
+                "skipped_existing": self.skipped_existing,
+                "edges": self.edges,
+                "reasons": self.reasons}
+
+
+def stable_point_id(citation_id: str) -> str:
+    """Deterministic uuid so re-ingesting updates in place."""
+    digest = hashlib.sha256(citation_id.encode("utf-8")).hexdigest()
+    return f"{digest[:8]}-{digest[8:12]}-{digest[12:16]}-{digest[16:20]}-{digest[20:32]}"
+
+
+def sanitise(text: str) -> str:
+    """Strip anything that reads as an instruction to a model.
+
+    A judgment does not contain "ignore previous instructions"; if a document
+    does, it was not written by a court.
+    """
+    cleaned = (text or "").strip()
+    for _, pattern in prompting._INJECTION_PATTERNS:  # noqa: SLF001 - same package
+        cleaned = pattern.sub("[removed]", cleaned)
+    cleaned = re.sub(r"<<<(?:END_)?[A-Z_]+:[0-9a-f]+>>>", "[removed]", cleaned)
+    return re.sub(r"\s+", " ", cleaned).strip()
+
+
+def _year(date_str: str) -> int:
+    match = re.match(r"(\d{4})", date_str or "")
+    return int(match.group(1)) if match else 0
+
+
+def build_case_payload(raw: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Normalise one source record into the corpus schema."""
+    citation_id = (raw.get("citation_id") or "").strip()
+    case_name = sanitise(raw.get("case_name", ""))
+    if not citation_id or not case_name:
+        return None
+
+    source = (raw.get("source") or "").strip().lower()
+    sections = [normalise_section(s) for s in raw.get("sections", []) if s]
+    summary = sanitise(raw.get("summary", ""))[:_MAX_CHARS]
+    holding = sanitise(raw.get("holding", ""))[:_MAX_CHARS]
+
+    return {
+        "citation_id": citation_id,
+        "case_name": case_name,
+        "court": sanitise(raw.get("court", "")),
+        "court_rank": court_rank(raw.get("court", "")),
+        "date": (raw.get("date") or "")[:10],
+        "year": _year(raw.get("date", "")),
+        "sections": sections,
+        "codes": sorted({(c or "IPC").upper() for c in raw.get("codes", ["IPC"])}),
+        "holding": holding,
+        "summary": summary,
+        "source_url": (raw.get("source_url") or "")[:500],
+        # The single most important field in the corpus.
+        "verified": source in TRUSTED_SOURCES,
+        # Declared citation edges, carried through for the graph. Data from
+        # the source record -- never inferred here.
+        "cites": raw.get("cites") or [],
+        "provenance": {
+            "source": source or "unknown",
+            "retrieved_at": raw.get("retrieved_at", ""),
+            "ingested_by": "app.services.ingest.pipeline",
+        },
+    }
+
+
+def embedding_text(payload: Dict[str, Any]) -> str:
+    """What actually gets embedded.
+
+    Facts and holding, not the case name: retrieval has to discriminate
+    between two judgments under the same section on their facts.
+    """
+    parts = [
+        payload["case_name"],
+        f"Court: {payload['court']}" if payload["court"] else "",
+        f"Sections: {', '.join(payload['sections'])}" if payload["sections"] else "",
+        payload["summary"],
+        f"Holding: {payload['holding']}" if payload["holding"] else "",
+    ]
+    return "\n".join(p for p in parts if p)[:_MAX_CHARS]
+
+
+def build_statute_payload(raw: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    section = normalise_section(raw.get("section", ""))
+    if not section:
+        return None
+    reference = dict(raw.get("reference") or {})
+    # Statute text now arrives from an external publisher, not only from a
+    # maintainer's own file, so it gets the same instruction-stripping a
+    # judgment does. A bare act does not contain "ignore previous
+    # instructions"; if a document does, it was not published by a ministry.
+    if reference.get("definition"):
+        reference["definition"] = sanitise(reference["definition"])[:_MAX_CHARS]
+    return {
+        "section": section,
+        "code": (raw.get("code") or "IPC").upper(),
+        "reference": reference,
+        "repealed": bool(raw.get("repealed", False)),
+        "act_name": raw.get("act_name", ""),
+        "source_url": (raw.get("source_url") or "")[:500],
+        "verified": (raw.get("source") or "").lower() in TRUSTED_SOURCES,
+        "provenance": {"source": raw.get("source", "unknown"),
+                       "retrieved_at": raw.get("retrieved_at", "")},
+    }
+
+
+def read_records(path: Path) -> Iterable[Dict[str, Any]]:
+    """JSONL, one record per line. Bad lines are reported, not fatal."""
+    with path.open(encoding="utf-8") as handle:
+        for number, line in enumerate(handle, 1):
+            line = line.strip()
+            if not line or line.startswith("//"):
+                continue
+            try:
+                yield json.loads(line)
+            except ValueError as exc:
+                log.warning("ingest.bad_line", extra={"line": number,
+                                                      "error": str(exc)[:120]})
+
+
+async def drop_already_indexed(collection: str, batch: List[Dict[str, Any]],
+                              point_id) -> List[Dict[str, Any]]:
+    """Filter a batch down to records the collection does not already hold.
+
+    Embedding is the expensive, rate-limited step, and Gemini's free tier
+    allows 1000 embed requests a *day*. Without this, a run resumed after
+    hitting that ceiling spends the whole of the next day's allowance
+    re-embedding what it already indexed and makes no progress. Point ids are
+    deterministic, so presence is an exact answer rather than a guess.
+
+    Pass --refresh to re-embed everything, which is what you want after
+    changing the embedding model.
+    """
+    if not batch:
+        return batch
+    ids = [point_id(record) for record in batch]
+    try:
+        found = await get_client().retrieve(
+            collection_name=collection, ids=ids,
+            with_payload=False, with_vectors=False,
+        )
+    except Exception as exc:
+        # A failed existence check must not stop an ingest; re-embedding is
+        # wasteful, not wrong.
+        log.debug("ingest.existence_check_failed", extra={"error": str(exc)[:120]})
+        return batch
+    have = {str(point.id) for point in found}
+    return [record for record, pid in zip(batch, ids) if str(pid) not in have]
+
+
+async def build_vectors(texts: List[str]) -> List[Dict[str, Any]]:
+    """Dense and (when available) sparse vectors for a batch, named for Qdrant.
+
+    The sparse half is the document side of BM25 — raw term frequencies. The
+    document-frequency half depends on the whole corpus and is applied by
+    Qdrant at query time via `Modifier.IDF`, so nothing here has to be kept
+    in sync with the size of the collection.
+    """
+    encoder = get_sparse_encoder()
+    want_sparse = settings.HYBRID_SEARCH and await encoder.available()
+
+    dense = await get_embedder().embed(texts)
+    sparse = await encoder.encode(texts) if want_sparse else []
+
+    vectors: List[Dict[str, Any]] = [{DENSE: vector} for vector in dense]
+    for slot, (indices, values) in zip(vectors, sparse):
+        if indices:
+            slot[SPARSE] = qm.SparseVector(indices=indices, values=values)
+    return vectors
+
+
+async def save_citation_edges(payloads: List[Dict[str, Any]]) -> int:
+    """Extract and persist the citation graph for a batch of judgments.
+
+    Declared `cites` entries first, then whatever the record's own prose
+    yields, resolved against the case names already in this batch. Never
+    fatal: a corpus without a graph is the situation before this existed.
+    """
+    known = {(p.get("case_name") or "").lower(): p["citation_id"]
+             for p in payloads if p.get("case_name") and p.get("citation_id")}
+    edges: List[Dict[str, Any]] = []
+    for payload in payloads:
+        edges.extend(authority.edges_from_record(payload))
+        edges.extend(authority.edges_from_text(payload, known))
+    if not edges:
+        return 0
+    await authority.ensure_indexes()
+    return await authority.save_edges(edges)
+
+
+async def ingest_cases(records: Iterable[Dict[str, Any]], *,
+                       batch_size: int = 32,
+                       refresh: bool = False) -> IngestStats:
+    stats = IngestStats()
+    await ensure_collection(CASE_LAWS)
+    client = get_client()
+    batch: List[Dict[str, Any]] = []
+
+    async def flush() -> None:
+        if not batch:
+            return
+        # Edges first, for the whole batch. They are Mongo upserts, cost no
+        # embedding, and are idempotent -- so they must not sit behind the
+        # already-indexed check, or a corpus ingested before the citation
+        # graph existed could never acquire one without a full re-embed.
+        stats.edges += await save_citation_edges(batch)
+
+        pending = (batch if refresh else
+                   await drop_already_indexed(CASE_LAWS, batch,
+                                              lambda r: stable_point_id(r["citation_id"])))
+        stats.skipped_existing += len(batch) - len(pending)
+        if not pending:
+            batch.clear()
+            return
+        vectors = await build_vectors([embedding_text(p) for p in pending])
+        await client.upsert(
+            collection_name=CASE_LAWS,
+            points=[
+                qm.PointStruct(id=stable_point_id(p["citation_id"]),
+                               vector=vector, payload=p)
+                for p, vector in zip(pending, vectors)
+            ],
+            wait=True,
+        )
+        stats.written += len(pending)
+        log.info("ingest.batch", extra={"written": stats.written,
+                                        "edges": stats.edges,
+                                        "skipped_existing": stats.skipped_existing})
+        batch.clear()
+
+    for raw in records:
+        stats.read += 1
+        payload = build_case_payload(raw)
+        if payload is None:
+            stats.skip("missing citation_id or case_name")
+            continue
+        if not payload["verified"]:
+            # Refuse quietly rather than indexing something we would never
+            # cite. An untrusted source is a configuration mistake.
+            stats.skip(f"untrusted source: {payload['provenance']['source']}")
+            continue
+        if not (payload["summary"] or payload["holding"]):
+            stats.skip("no substantive text to embed")
+            continue
+        batch.append(payload)
+        if len(batch) >= batch_size:
+            await flush()
+    await flush()
+    return stats
+
+
+async def ingest_statutes(records: Iterable[Dict[str, Any]],
+                          *, batch_size: int = 32,
+                          refresh: bool = False) -> IngestStats:
+    stats = IngestStats()
+    await ensure_collection(STATUTES)
+    client = get_client()
+    batch: List[Dict[str, Any]] = []
+
+    async def flush() -> None:
+        if not batch:
+            return
+        pending = (batch if refresh else
+                   await drop_already_indexed(
+                       STATUTES, batch,
+                       lambda r: stable_point_id(f"{r['code']}:{r['section']}")))
+        stats.skipped_existing += len(batch) - len(pending)
+        if not pending:
+            batch.clear()
+            return
+        texts = [
+            f"{p['code']} section {p['section']}. "
+            f"{(p['reference'] or {}).get('definition', '')}"
+            for p in pending
+        ]
+        vectors = await build_vectors(texts)
+        await client.upsert(
+            collection_name=STATUTES,
+            points=[
+                qm.PointStruct(id=stable_point_id(f"{p['code']}:{p['section']}"),
+                               vector=vector, payload=p)
+                for p, vector in zip(pending, vectors)
+            ],
+            wait=True,
+        )
+        stats.written += len(pending)
+        log.info("ingest.batch", extra={"written": stats.written,
+                                        "skipped_existing": stats.skipped_existing})
+        batch.clear()
+
+    for raw in records:
+        stats.read += 1
+        payload = build_statute_payload(raw)
+        if payload is None:
+            stats.skip("missing section")
+            continue
+        batch.append(payload)
+        if len(batch) >= batch_size:
+            await flush()
+    await flush()
+    return stats
+
+
+async def purge(collection: str) -> int:
+    """Delete every point in a collection.
+
+    Needed once, to remove the fabricated 'precedent' the old generate-then-
+    persist path wrote into the shared corpus.
+    """
+    client = get_client()
+    if not await client.collection_exists(collection):
+        return 0
+    from app.core.qdrant_client import count
+
+    before = await count(collection)
+    await client.delete(
+        collection_name=collection,
+        points_selector=qm.FilterSelector(filter=qm.Filter(must=[])),
+        wait=True,
+    )
+    log.warning("ingest.purged", extra={"collection": collection, "removed": before})
+    return before
+
+
+def _confirm(question: str) -> bool:
+    reply = input(f"{question} [y/N] ")
+    if reply.strip().lower() in ("y", "yes"):
+        return True
+    print("aborted")
+    return False
+
+
+async def _main(argv: Optional[List[str]] = None) -> int:
+    parser = argparse.ArgumentParser(description="VaadVivaad corpus ingest")
+    parser.add_argument("--source", type=Path, help="JSONL file of records")
+    parser.add_argument("--harvest", metavar="ADAPTER",
+                        help="fetch records from a live source instead of a "
+                             f"file (one of: {', '.join(harvest.available())})")
+    parser.add_argument("--refresh", action="store_true",
+                        help="re-embed records the collection already holds. "
+                             "Off by default so a run resumed after hitting a "
+                             "daily embedding quota continues instead of "
+                             "spending the new allowance on old work. Use it "
+                             "after changing the embedding model.")
+    parser.add_argument("--codes", default="BNS,BNSS,BSA",
+                        help="comma-separated codes for --harvest indiacode "
+                             "(BNS, BNSS, BSA -- the codes in force)")
+    parser.add_argument("--kind", choices=["cases", "statutes"], default="cases")
+    parser.add_argument("--purge", action="store_true",
+                        help="delete every point in the target collection first")
+    parser.add_argument("--recreate", action="store_true",
+                        help="drop and rebuild the collection before ingesting. "
+                             "Required after changing EMBEDDING_PROVIDER or "
+                             "EMBEDDING_DIMENSIONS, or to add the sparse vector "
+                             "to a collection built before hybrid retrieval.")
+    parser.add_argument("--yes", action="store_true",
+                        help="skip the purge/recreate prompt")
+    args = parser.parse_args(argv)
+
+    configure("INFO", console=True)
+    collection = CASE_LAWS if args.kind == "cases" else STATUTES
+
+    if args.purge and args.recreate:
+        print("--purge and --recreate do the same job; pass only --recreate",
+              file=sys.stderr)
+        return 2
+
+    if args.recreate:
+        if not args.yes and not _confirm(
+            f"Drop and rebuild '{collection}'? Every point is destroyed."
+        ):
+            return 1
+        await recreate_collection(collection)
+        embedder = get_embedder()
+        print(f"recreated {collection} at {embedder.dimensions} dimensions "
+              f"({embedder.name})")
+
+    if args.purge:
+        if not args.yes and not _confirm(f"Delete ALL points in '{collection}'?"):
+            return 1
+        removed = await purge(collection)
+        print(f"purged {removed} points from {collection}")
+
+    if args.harvest:
+        if args.harvest not in harvest.available():
+            print(f"unknown adapter: {args.harvest}. "
+                  f"Known: {', '.join(harvest.available())}", file=sys.stderr)
+            return 2
+        targets = [c.strip() for c in args.codes.split(",") if c.strip()]
+        print(f"harvesting {args.harvest} ({', '.join(targets)}) ...")
+        records = await harvest.collect(args.harvest, targets)
+        print(f"harvested {len(records)} records")
+        if not records:
+            print("nothing to ingest", file=sys.stderr)
+            return 1
+        stats = (await ingest_statutes(records, refresh=args.refresh)
+                 if harvest.kind_of(args.harvest) == "statutes"
+                 else await ingest_cases(records, refresh=args.refresh))
+        print(json.dumps(stats.as_dict(), indent=2))
+        return 0
+
+    if args.source:
+        if not args.source.exists():
+            print(f"no such file: {args.source}", file=sys.stderr)
+            return 2
+        records = read_records(args.source)
+        stats = (await ingest_cases(records, refresh=args.refresh)
+                 if args.kind == "cases"
+                 else await ingest_statutes(records, refresh=args.refresh))
+        print(json.dumps(stats.as_dict(), indent=2))
+        if stats.skipped:
+            print("\nSkipped records are usually an untrusted `source` field. "
+                  f"Trusted sources: {', '.join(sorted(TRUSTED_SOURCES))}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(asyncio.run(_main()))
