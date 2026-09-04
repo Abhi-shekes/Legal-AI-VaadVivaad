@@ -141,7 +141,7 @@ Highlights:
 ## Project layout
 
 ```
-VaadVivaad-Legal-AI/
+Legal-AI-VaadVivaad/
 ├── docker-compose.yml          Core stack + capability profiles
 ├── docker-compose.dev.yml      Hot-reload dev overlay (dev.sh)
 ├── .env.example                Every variable, documented inline
@@ -151,8 +151,10 @@ VaadVivaad-Legal-AI/
 └── vaadvivaad-frontend/        React + Vite SPA                  → see its README
 ```
 
-`vaadvivaad-backend/` and `vaadvivaad-frontend/` are independent git repos,
-each with its own README covering standalone (non-Docker) setup.
+One repository. `vaadvivaad-backend/` and `vaadvivaad-frontend/` each keep
+their own README covering standalone (non-Docker) setup, and their own
+`.gitignore`, `Dockerfile` and dependency manifest — they are still built and
+released as separate images, they are just versioned together.
 
 ## Security posture
 
