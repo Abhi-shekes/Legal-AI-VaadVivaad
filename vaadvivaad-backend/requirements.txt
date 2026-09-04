@@ -89,3 +89,10 @@ weasyprint==63.1
 # Needed only if the document upload is switched to multipart form data;
 # the current raw-body upload does not require it.
 python-multipart==0.0.20
+
+# --- added for hybrid retrieval (F-01) ---
+# BM25 sparse vectors, computed in-process. Carries no neural weights -- it is
+# a tokeniser, a stemmer and a stopword list -- so it needs no model server.
+# Optional: retrieval falls back to dense-only when it is not importable.
+# Pinned to the version verified in the image build.
+fastembed==0.8.0

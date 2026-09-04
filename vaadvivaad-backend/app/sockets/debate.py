@@ -21,6 +21,7 @@ from app.core.errors import NotAuthenticated, PermissionDenied, VaadVivaadError
 from app.core.logging import bind, get_logger, new_request_id
 from app.core.logging import context as log_context
 from app.db import repository
+from app.services import concordance
 from app.services.debate.machine import DebateMachine, DebateState, Stage
 from app.socket_instance import sio
 
@@ -223,9 +224,20 @@ async def _replay(debate_id: str, state: DebateState,
             "case": state.case.model_dump(mode="json"),
             "sections": [s.model_dump(mode="json") for s in state.sections],
         })
+        # The live path sends a resolved `section` view and the client renders
+        # the provision engaged from it. Replay omitted it, so a resumed hearing
+        # showed an em dash where the section should be.
+        leading = state.sections[0] if state.sections else None
+        section_view = (
+            concordance.resolve(leading.section, code=leading.code,
+                                incident_date=state.case.incident_date).to_payload()
+            if leading else {}
+        )
         await emit("case_details", {
             "summary": state.case.summary,
             "crime_type": state.case.crime_type,
+            "section": section_view,
+            "statute_note": concordance.statute_note(state.case.incident_date),
             "statute": state.statute.model_dump(mode="json") if state.statute else None,
             "statute_verified": state.statute_verified,
             "precedents": [p.model_dump(mode="json") for p in state.precedents],
@@ -240,6 +252,11 @@ async def _replay(debate_id: str, state: DebateState,
             "citations": [p.model_dump(mode="json") for p in state.precedents
                           if p.citation_id in turn.content.relies_on],
         })
+    # Orders this hearing superseded, so a reopened case shows its history
+    # rather than presenting the latest order as if it were the only one.
+    if state.prior_rulings:
+        await emit("prior_rulings", {"rulings": state.prior_rulings,
+                                     "continuations": state.continuations})
     if state.ruling:
         await emit("ruling", state.ruling.model_dump(mode="json"))
     if state.gaps:

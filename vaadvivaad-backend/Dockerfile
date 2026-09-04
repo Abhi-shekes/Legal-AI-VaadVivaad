@@ -11,6 +11,16 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
+# Bake the BM25 vocabulary into the image rather than fetching it on first
+# use. It is a stopword list and a stemmer, not model weights -- a few
+# hundred kilobytes -- but downloading it at runtime would mean a network
+# round trip on every cold start, under a non-root user with no writable
+# cache directory. Baked here, hybrid retrieval works offline.
+ENV FASTEMBED_CACHE_PATH=/opt/fastembed
+RUN python -c "from fastembed import SparseTextEmbedding; \
+    SparseTextEmbedding(model_name='Qdrant/bm25')" \
+    && chmod -R a+rX /opt/fastembed
+
 COPY . .
 
 # Run as a non-root user

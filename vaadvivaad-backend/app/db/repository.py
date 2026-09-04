@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Optional
 
 from bson import ObjectId
 from bson.errors import InvalidId
-from pymongo import ASCENDING, DESCENDING, ReturnDocument
+from pymongo import ASCENDING, DESCENDING, TEXT, ReturnDocument
 
 from app.core.errors import NotFound, PermissionDenied
 from app.core.logging import get_logger
@@ -35,6 +35,13 @@ async def ensure_indexes() -> None:
         await db.debates.create_index([("debate_id", ASCENDING)], unique=True,
                                       name="uniq_debate_id")
         await db.debates.create_index([("stage", ASCENDING)], name="by_stage")
+        # Backs the MongoDB fallback in `services/search.py`. Only the fields
+        # named here are searchable, which is exactly why Meilisearch exists:
+        # this cannot reach the transcript.
+        await db.debates.create_index(
+            [("description", TEXT), ("case.summary", TEXT), ("case.crime_type", TEXT)],
+            name="case_text",
+        )
         await db.refresh_tokens.create_index([("jti", ASCENDING)], unique=True,
                                              name="uniq_jti")
         # Expired refresh tokens and revocations clean themselves up.
@@ -55,12 +62,24 @@ def oid(value: str) -> ObjectId:
 # ── Debates ──────────────────────────────────────────────────────────────
 
 async def save_debate_state(state: Dict[str, Any]) -> None:
-    """Upsert the full debate state. Called after every committed turn."""
+    """Upsert the full debate state. Called after every committed turn.
+
+    The search index is updated from here rather than from each of the five
+    call sites that save, so a hearing cannot become findable on one path and
+    not another. `index_debate` ignores anything still in progress and never
+    raises, so search being down cannot cost someone their transcript.
+
+    Imported late: `db` is a lower layer than `services`, and importing
+    upwards at module scope would make the cycle real.
+    """
     await db.debates.update_one(
         {"debate_id": state["debate_id"]},
         {"$set": state},
         upsert=True,
     )
+    from app.services import search
+
+    await search.index_debate(state)
 
 
 async def load_debate_state(debate_id: str, user_id: str) -> Optional[Dict[str, Any]]:
@@ -124,6 +143,10 @@ def _title_for(case: Dict[str, Any], sections: List[Dict[str, Any]]) -> str:
 
 async def delete_debate(debate_id: str, user_id: str) -> bool:
     result = await db.debates.delete_one({"debate_id": debate_id, "user_id": user_id})
+    if result.deleted_count:
+        from app.services import search
+
+        await search.remove_debate(debate_id)
     return result.deleted_count > 0
 
 

@@ -3,65 +3,55 @@ __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
-*.pyc
 *.so
 *.egg
 *.egg-info/
-dist/
 build/
-*.log
+dist/
 
 # Virtual environment
 venv/
 env/
-.venv/
 ENV/
+.venv/
 
-# IDEs
-.vscode/
-.idea/
-
-# Environment files
+# Environment files (.env.example stays tracked)
 .env
 .env.*
+!.env.example
 
-# pytest
+# Test / type / coverage caches
 .cache/
 .pytest_cache/
-
-# MyPy & coverage
 .mypy_cache/
+.ruff_cache/
 .coverage
 coverage.xml
 htmlcov/
 
-# Pydantic artifacts
-*.json
+# Logs
+*.log
 
-# Jupyter notebooks (optional)
-.ipynb_checkpoints/
+# Corpus harvest cache (see config.HARVEST_CACHE_DIR)
+.harvest-cache/
 
-# OS-specific
+# Local verification scratch
+.audit-evidence/
+
+# Editors
+.vscode/
+.idea/
+*.sw?
+
+# OS
 .DS_Store
 Thumbs.db
 
-# Docker
+# Jupyter
+.ipynb_checkpoints/
+
+# Local databases / runtime
 *.sqlite3
 *.db
 *.pid
 docker-compose.override.yml
-
-# Node (if using frontend)
-node_modules/
-*.tsbuildinfo
-
-# PyInstaller
-*.spec
-
-# FastAPI static/uploads (if used)
-staticfiles/
-media/
-uploads/
-
-# Local verification scratch
-.audit-evidence/

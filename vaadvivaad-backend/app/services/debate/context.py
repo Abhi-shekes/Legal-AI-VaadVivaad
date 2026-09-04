@@ -166,6 +166,16 @@ class DebateContext:
     ledger: ClaimLedger = field(default_factory=ClaimLedger)
     recent: List[TurnRecord] = field(default_factory=list)
     user_evidence: str = ""
+    # Passages retrieved from the user's own uploaded documents for the phase
+    # being argued. Refreshed per turn by the machine, not cached in the
+    # immutable block: what matters during the evidence phase is not what
+    # matters in rebuttal.
+    file_passages: List[dict] = field(default_factory=list)
+    # Conflicts found in the case file. Put to both sides, not only the
+    # defence: the prosecution has to be able to explain a discrepancy it is
+    # going to be confronted with, and a hearing where only one side can see
+    # the problem is not a test of the case.
+    contradictions: List[dict] = field(default_factory=list)
 
     _immutable_cache: Optional[str] = None
 
@@ -243,6 +253,36 @@ class DebateContext:
             blocks.append(
                 "\n## UNANSWERED BY YOUR SIDE\n"
                 + "\n".join(f"  {c.id}: {c.text}" for c in open_against[:5])
+            )
+
+        # The case file, before the immediate exchange: counsel should reach
+        # for the document before reaching for the last thing said.
+        if self.file_passages:
+            from app.services import casefile
+
+            rendered = casefile.render_passages(self.file_passages)
+            if rendered:
+                blocks.append(
+                    "\n## FROM THE CASE FILE\n"
+                    "Passages from documents filed in this matter. Quote them "
+                    "with their [source#n] anchor so the reference can be "
+                    "checked.\n\n" + rendered
+                )
+
+        if self.contradictions:
+            lines = []
+            for item in self.contradictions[:4]:
+                mark = "" if item.get("certain") else " (provisional)"
+                lines.append(
+                    f"- {item.get('why', '')}{mark}\n"
+                    f"    A [{item.get('anchor_a', '')}]: {item.get('statement_a', '')}\n"
+                    f"    B [{item.get('anchor_b', '')}]: {item.get('statement_b', '')}"
+                )
+            blocks.append(
+                "\n## DISCREPANCIES IN THE FILE\n"
+                "Found by comparing documents in this matter. Anything marked "
+                "provisional was read out of the text and may be explicable — "
+                "address it, do not assume it.\n" + "\n".join(lines)
             )
 
         verbatim = self._recent_verbatim(verbatim_budget)

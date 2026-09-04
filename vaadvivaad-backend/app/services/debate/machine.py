@@ -34,7 +34,7 @@ from enum import Enum
 from typing import Any, Awaitable, Callable, Dict, List, Optional
 
 from app.core.config import settings
-from app.core.errors import BudgetExceeded, LLMError, VaadVivaadError
+from app.core.errors import BudgetExceeded, LLMError, ValidationFailed, VaadVivaadError
 from app.core import metrics
 from app.core.llm import FAST, REASONING, TokenLedger, llm
 from app.core.logging import Timer, get_logger, context as log_context
@@ -51,7 +51,15 @@ from app.domain.schemas import (
     utcnow,
 )
 from app.security import prompting
-from app.services import analysis, citations, concordance, intake, retrieval
+from app.services import (
+    analysis,
+    casefile,
+    citations,
+    concordance,
+    intake,
+    retrieval,
+    timeline,
+)
 from app.services.debate import personas
 from app.services.debate.context import ClaimLedger, DebateContext
 
@@ -84,6 +92,30 @@ _SCHEDULE: List[tuple] = [
     (Phase.CLOSING, Side.DEFENCE),
 ]
 
+# How many turns one grant of further submissions is worth: one each way, so
+# neither side gets the last word for free.
+FURTHER_TURNS = 2
+
+# A hearing cannot be reopened without limit: each grant costs two more turns
+# and a fresh ruling on a matter the user has already been charged for.
+MAX_CONTINUATIONS = 3
+
+
+def schedule_at(index: int) -> tuple:
+    """Who speaks at `index`, in which phase.
+
+    The fixed schedule runs to closing. Past that the hearing is in further
+    submissions, which the person whose matter it is has asked for, and which
+    alternate prosecution then defence for as long as they are granted. This
+    replaces indexing `_SCHEDULE` directly, which capped a hearing at eight
+    turns and made "argue it further" impossible to express.
+    """
+    if index < len(_SCHEDULE):
+        return _SCHEDULE[index]
+    offset = index - len(_SCHEDULE)
+    side = Side.PROSECUTION if offset % 2 == 0 else Side.DEFENCE
+    return (Phase.FURTHER, side)
+
 
 @dataclass
 class DebateState:
@@ -107,6 +139,15 @@ class DebateState:
     strength: Optional[dict] = None
     objections: List[str] = field(default_factory=list)
     pending_objection: Optional[str] = None
+    # Orders this hearing has superseded, oldest first. A revised verdict with
+    # no trace of what it revised would be worse than not revising at all.
+    prior_rulings: List[dict] = field(default_factory=list)
+    continuations: int = 0
+    consultations: List[dict] = field(default_factory=list)
+    # Discrepancies found across the case file, computed once at research
+    # time. Two model calls, so not recomputed per turn -- the documents do
+    # not change while the hearing runs.
+    contradictions: List[dict] = field(default_factory=list)
     max_steps: int = 8
     tokens: Dict[str, Any] = field(default_factory=dict)
     error: Optional[str] = None
@@ -133,6 +174,10 @@ class DebateState:
             "strength": self.strength,
             "objections": self.objections,
             "pending_objection": self.pending_objection,
+            "prior_rulings": self.prior_rulings,
+            "continuations": self.continuations,
+            "consultations": self.consultations,
+            "contradictions": self.contradictions,
             "max_steps": self.max_steps,
             "tokens": self.tokens,
             "error": self.error,
@@ -161,6 +206,10 @@ class DebateState:
             strength=raw.get("strength"),
             objections=raw.get("objections", []),
             pending_objection=raw.get("pending_objection"),
+            prior_rulings=raw.get("prior_rulings", []),
+            continuations=raw.get("continuations", 0),
+            consultations=raw.get("consultations", []),
+            contradictions=raw.get("contradictions", []),
             max_steps=raw.get("max_steps", 8),
             tokens=raw.get("tokens", {}),
             error=raw.get("error"),
@@ -175,6 +224,18 @@ class DebateState:
     @property
     def code(self) -> str:
         return self.sections[0].code if self.sections else "IPC"
+
+
+# What each phase is actually looking for in the case file. Prepended to the
+# retrieval query so the evidence phase surfaces the recovery memo and the
+# rebuttal phase surfaces the contradiction, rather than both getting the
+# same three paragraphs.
+_PHASE_FOCUS = {
+    Phase.OPENING: "the allegation as first recorded, the complaint and its date",
+    Phase.EVIDENCE: "seizure, recovery, medical findings, witness statements, exhibits",
+    Phase.REBUTTAL: "inconsistencies, delay, omissions, contradictions between statements",
+    Phase.CLOSING: "the strongest documentary support for the case as a whole",
+}
 
 
 class DebateMachine:
@@ -287,6 +348,11 @@ class DebateMachine:
 
         self.state.precedents = precedents
         self.state.statute = statute
+        # Read the case file against itself before anyone argues. A hearing
+        # that does not notice the FIR predates the incident is confidently
+        # wrong, and the discrepancy is put to both sides rather than handed
+        # to the defence as a gift.
+        self.state.contradictions = await self._find_contradictions()
         self.state.stage = Stage.ARGUING
         await self._save()
 
@@ -316,6 +382,26 @@ class DebateMachine:
                  extra={"precedents": len(precedents), "ms": timer.ms,
                         "statute_verified": self.state.statute_verified})
 
+    async def _find_contradictions(self) -> List[dict]:
+        """Discrepancies across the uploaded documents. [] when there are none
+        and when there is no file, which is the common case."""
+        try:
+            report = await timeline.build(
+                debate_id=self.state.debate_id,
+                user_id=self.state.user_id,
+                case=self.state.case,
+                ledger=self.ledger,
+            )
+        except Exception as exc:
+            # A hearing must not fail because the timeline could not be built.
+            log.warning("debate.timeline_failed", extra={"error": str(exc)[:160]})
+            return []
+        found = [c.model_dump(mode="json") for c in report.contradictions]
+        if found:
+            await self.emit("contradictions", {"contradictions": found,
+                                               "note": report.note})
+        return found
+
     async def _statute_for(self, section: str, code: str) -> Optional[SectionReference]:
         """Curated corpus first; model-derived fallback clearly marked."""
         if not section:
@@ -342,13 +428,30 @@ class DebateMachine:
             ledger=ClaimLedger.from_dicts(self.state.claims),
             recent=self.state.turns[-4:],
             user_evidence=self.state.evidence_text,
+            contradictions=self.state.contradictions,
         )
         return context
 
     async def _argue(self) -> None:
         self.context = self._build_context()
+
+        # Entering further submissions: tell the room before the first new turn
+        # arrives, so the client can retire the order that is being revisited
+        # rather than showing it alongside argument that postdates it.
+        if self.state.step_index >= len(_SCHEDULE) and self.state.prior_rulings:
+            await self.emit("hearing_reopened", {
+                "continuations": self.state.continuations,
+                "remaining": MAX_CONTINUATIONS - self.state.continuations,
+                "superseded": self.state.prior_rulings[-1],
+                "message": "Counsel have been recalled for further submissions.",
+            })
+            await self.emit("status", {
+                "stage": "arguing",
+                "message": "Counsel have been recalled…",
+            })
+
         while self.state.step_index < self.state.max_steps:
-            phase, side = _SCHEDULE[self.state.step_index]
+            phase, side = schedule_at(self.state.step_index)
             round_no = self.state.step_index // 2 + 1
 
             await self._pick_up_objection()
@@ -372,6 +475,30 @@ class DebateMachine:
         self.state.stage = Stage.RULING
         await self._save()
 
+    async def _load_file_passages(self, phase: Phase) -> None:
+        """Pull the passages from the user's own documents that bear on this
+        phase, and hand them to the context for this turn only.
+
+        Queried per phase rather than once per hearing: what matters while
+        the evidence is being argued is not what matters in rebuttal, and a
+        chargesheet is far longer than the budget for either. Costs one
+        embedding and one filtered vector search; returns [] when the case
+        has no file, which is the common case and changes nothing.
+        """
+        if self.context is None:
+            return
+        case = self.state.case
+        query = " ".join(filter(None, [
+            _PHASE_FOCUS.get(phase, ""),
+            (case.summary if case else "") or self.state.description,
+        ]))[:600]
+        self.context.file_passages = await casefile.search(
+            debate_id=self.state.debate_id,
+            user_id=self.state.user_id,
+            query=query,
+            limit=3,
+        )
+
     async def _one_turn(self, phase: Phase, side: Side, round_no: int) -> None:
         assert self.context is not None
         open_ids = [c.id for c in self.context.ledger.open_claims(against=side)]
@@ -381,6 +508,7 @@ class DebateMachine:
             self.state.objections.append(self.state.pending_objection)
             self.state.pending_objection = None
 
+        await self._load_file_passages(phase)
         prompt = self.context.assemble(side, phase, round_no, instruction)
 
         await self.emit("turn_start", {
@@ -487,6 +615,15 @@ class DebateMachine:
             + "\n\n## CLAIM LEDGER\n" + context.ledger.render(max_tokens=900)
             + "\n\n" + personas.bench_instruction(len(self.state.objections))
         )
+        # Ruling again after further submissions: the bench is shown the order
+        # it already made, so it revisits that reasoning rather than producing
+        # a fresh order that merely happens to differ.
+        superseded = self.state.prior_rulings[-1] if self.state.prior_rulings else None
+        if superseded is not None:
+            further = sum(1 for t in self.state.turns if t.phase is Phase.FURTHER)
+            prompt += personas.revision_instruction(
+                BenchRuling.model_validate(superseded), further
+            )
         try:
             ruling = await llm.generate(
                 prompt, BenchRuling, step="debate.bench", tier=REASONING,
@@ -512,6 +649,7 @@ class DebateMachine:
             })
             return
         ruling = self._calibrate(ruling)
+        ruling.revises = len(self.state.prior_rulings)
         self.state.ruling = ruling
         self.state.stage = Stage.ANALYSING
         await self._save()
@@ -638,6 +776,49 @@ class DebateMachine:
         self.state.updated_at = utcnow().isoformat()
         self.state.tokens = self.ledger.summary()
         await self.persist(self.state)
+
+
+def can_continue(state: DebateState) -> tuple:
+    """Whether further submissions may be heard, and why not if they may not.
+
+    Returns `(allowed, reason)`. The reason is written for the user, because
+    every caller of this ends up putting it on screen.
+    """
+    if state.stage not in (Stage.DONE, Stage.FAILED):
+        return False, "This hearing has not concluded yet."
+    if state.ruling is None:
+        return False, "No order has been made in this matter yet."
+    if state.continuations >= MAX_CONTINUATIONS:
+        return (False,
+                f"This matter has already been argued further "
+                f"{MAX_CONTINUATIONS} times, which is the limit.")
+    return True, ""
+
+
+def open_further_submissions(state: DebateState) -> DebateState:
+    """Reopen a concluded hearing so counsel can be recalled.
+
+    The order already made is moved to `prior_rulings` rather than discarded --
+    the user is entitled to see what was held before it was revisited -- and
+    the stage goes back to arguing with room for one exchange each way. `run()`
+    dispatches on stage and resumes from `step_index`, so nothing already
+    argued is re-generated or re-charged.
+    """
+    allowed, reason = can_continue(state)
+    if not allowed:
+        raise ValidationFailed("cannot continue", user_message=reason)
+
+    state.prior_rulings.append(state.ruling.model_dump(mode="json"))
+    state.ruling = None
+    state.continuations += 1
+    state.max_steps = state.step_index + FURTHER_TURNS
+    state.stage = Stage.ARGUING
+    state.error = None
+    # The audit was of the record as it stood; both are recomputed once the
+    # further submissions are in.
+    state.gaps = None
+    state.strength = None
+    return state
 
 
 def new_debate(user_id: str, description: str, evidence_text: str = "") -> DebateState:

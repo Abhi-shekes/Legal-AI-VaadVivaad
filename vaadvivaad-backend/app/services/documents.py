@@ -17,6 +17,8 @@ from typing import Optional, Tuple
 
 from google.genai import types
 
+from pydantic import BaseModel, Field
+
 from app.core.errors import ValidationFailed
 from app.core.llm import FAST, TokenLedger, llm
 from app.core.logging import get_logger
@@ -71,6 +73,20 @@ document omits.
 
 Redact nothing; leave a field empty rather than guessing at it."""
 )
+
+
+
+class DocumentText(BaseModel):
+    """A verbatim transcription.
+
+    A one-field schema rather than a new plain-text method on the client: it
+    reuses the retry, circuit-breaker, token-ledger and error-classification
+    machinery in `llm.generate`, none of which is worth reimplementing to
+    save a wrapper object.
+    """
+
+    text: str = Field(description="The document transcribed verbatim, "
+                                  "preserving paragraphs and numbering.")
 
 
 def validate(filename: str, content_type: str, size: int) -> str:
@@ -163,3 +179,46 @@ def to_submission(structure: CaseStructure) -> Tuple[str, str]:
         for item in structure.evidence
     )
     return "\n".join(lines), evidence
+
+
+async def extract_text(
+    data: bytes,
+    content_type: str,
+    filename: str = "",
+    *,
+    ledger: Optional[TokenLedger] = None,
+) -> str:
+    """The document's text, for indexing into the case file.
+
+    Separate from `extract_from_bytes`, which returns a `CaseStructure`. The
+    structure is what opens a case; the text is what counsel later quotes,
+    and one cannot be reconstructed from the other -- a summary of a
+    chargesheet is not a chargesheet.
+
+    Plain text needs no model at all. PDFs and photographs go through Gemini,
+    which reads both natively; this is the seam where Docling would slot in
+    for scans it struggles with.
+    """
+    kind = validate(filename, content_type, len(data))
+    if kind == "text":
+        return data.decode("utf-8", errors="replace")[:200_000]
+
+    instruction = (
+        "Transcribe this document to plain text. Preserve paragraph breaks, "
+        "numbering and headings. Do not summarise, comment, correct or omit "
+        "anything -- output the document's own words and nothing else."
+    )
+    transcript = await llm.generate(
+        [types.Part.from_bytes(data=data,
+                               mime_type=content_type.split(";")[0].strip()),
+         instruction],
+        DocumentText,
+        step="documents.transcribe",
+        tier=FAST,
+        temperature=0.0,
+        ledger=ledger,
+    )
+    result = transcript.text
+    log.info("documents.transcribed",
+             extra={"kind": kind, "bytes": len(data), "chars": len(result)})
+    return result[:200_000]

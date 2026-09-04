@@ -20,6 +20,10 @@ from app.core.errors import RateLimited, VaadVivaadError
 from app.core import metrics
 from app.core.logging import bind, configure, get_logger, new_request_id
 from app.core.logging import context as log_context
+from app.core.embeddings import close_providers
+from app.services.search import close_backend as close_search
+from app.services.voice import close_providers as close_voice
+from app.services.websearch import close_client as close_websearch
 from app.core.qdrant_client import close_client, ensure_all
 from app.core.store import close_store, get_store
 from app.db.repository import ensure_indexes
@@ -45,6 +49,10 @@ async def lifespan(_: FastAPI):
         log.error("app.qdrant_unavailable", extra={"error": str(exc)[:200]})
     get_store()  # surfaces the in-memory-in-production warning at boot
     yield
+    await close_search()
+    await close_websearch()
+    await close_voice()
+    await close_providers()
     await close_client()
     await close_store()
     log.info("app.stopped")
