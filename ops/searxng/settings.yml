@@ -1,0 +1,54 @@
+# SearXNG for VaadVivaad's "outside the record" lane.
+#
+# Two settings here are load-bearing:
+#
+#   search.formats  must include `json`. SearXNG serves HTML only by default,
+#                   and without this the backend's API call returns a page it
+#                   cannot parse -- which is the first thing to check if live
+#                   grounding is silently returning nothing.
+#
+#   server.secret_key  is read from SEARXNG_SECRET in the environment. It is
+#                      not defaulted here: a shared literal in a repository is
+#                      not a secret.
+#
+# This instance is reachable only on the internal Docker network. It is the
+# one component that talks to the open internet, and it holds no index and
+# no user data.
+
+use_default_settings: true
+
+general:
+  instance_name: "VaadVivaad research"
+  # No usage statistics page; nothing here is public.
+  enable_metrics: false
+
+search:
+  safe_search: 0
+  autocomplete: ""
+  default_lang: "en"
+  formats:
+    - html
+    - json
+
+server:
+  secret_key: !!str "!ENV ${SEARXNG_SECRET}"
+  limiter: false          # single trusted caller on a private network
+  image_proxy: false
+
+ui:
+  static_use_hash: true
+
+# Engines that answer legal queries usefully without an API key. The domain
+# allowlist in services/websearch.py is what actually constrains results --
+# these only decide who is asked.
+engines:
+  - name: google
+    disabled: false
+  - name: duckduckgo
+    disabled: false
+  - name: bing
+    disabled: false
+  - name: wikipedia
+    disabled: true
+  - name: wikidata
+    disabled: true

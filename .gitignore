@@ -1,7 +1,26 @@
+# Secrets / local env (.env.example stays tracked)
 .env
+.env.*
+!.env.example
 
 # vaadvivaad-backend/ and vaadvivaad-frontend/ are their own independent
 # git repos, not submodules of this one -- keep this repo scoped to the
-# orchestration files (docker-compose.yml, root README, .env.example).
+# orchestration files (docker-compose.yml, root README, .env.example, ops/).
 vaadvivaad-backend/
 vaadvivaad-frontend/
+
+# Local verification scratch
+.audit-evidence/
+
+# Compose overrides and runtime
+docker-compose.override.yml
+*.log
+
+# Editors
+.vscode/
+.idea/
+*.sw?
+
+# OS
+.DS_Store
+Thumbs.db

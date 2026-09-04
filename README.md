@@ -1,85 +1,123 @@
 # VaadVivaad
 
-**AI-simulated legal debate platform.** Submit a case, and watch an AI
-courtroom argue it — backed by real precedent search over Indian case law
-and IPC sections, with every debate saved to your case history.
+**Adversarial legal analysis over Indian criminal law.** File a case — typed,
+dictated, or as a document — and a structured hearing runs it: two AI counsel
+argue it across opening, evidence, rebuttal and closing, every citation is
+checked against verified authority *before* it reaches the transcript, and the
+bench delivers a reasoned, confidence-capped order. Then the record is audited
+for evidentiary gaps and case strength, and kept — searchable, resumable,
+exportable.
 
-Four services, one `docker compose up` — fully self-hosted, no managed
-cloud database required:
+It runs on free and self-hosted parts. **Google Gemini is the only external
+account**, and several features exist specifically to make even that optional.
 
 ```
-┌──────────────────────┐        ┌───────────────────────┐        ┌────────────────┐
-│  vaadvivaad-frontend  │──────▶│  vaadvivaad-backend     │──────▶│ vaadvivaad-mongo │
-│  React 18 + Vite      │  HTTP  │  FastAPI + Socket.IO    │ Motor  │  MongoDB 7       │
-│  served by nginx      │  & WS  │  (auth, cases, debate)   │        │  (auth-protected)│
-└──────────────────────┘        └────────────┬────────────┘        └────────────────┘
-                                              │
-                               ┌──────────────┴──────────────┐
-                               │                              │
-                    ┌──────────▼──────────┐        ┌──────────▼──────────┐
-                    │  vaadvivaad-qdrant   │        │   Google Gemini      │
-                    │  Vector search        │        │   (external API)      │
-                    │  (self-hosted)         │        │   arguments + embeds  │
-                    └──────────────────────┘        └──────────────────────┘
+┌───────────────────────┐   HTTP + WS   ┌────────────────────────────┐
+│  vaadvivaad-frontend   │ ────────────▶ │   vaadvivaad-backend        │
+│  React 18 + Vite        │              │   FastAPI + Socket.IO       │
+│  nginx (unprivileged)   │ ◀──────────── │   durable hearing machine   │
+└───────────────────────┘   turns stream └──────────┬─────────────────┘
+                                                     │
+        ┌────────────────────┬───────────────────────┼───────────────────────┐
+        ▼                    ▼                       ▼                       ▼
+┌──────────────┐   ┌──────────────────┐   ┌──────────────────┐   ┌──────────────────┐
+│ vaadvivaad-  │   │ vaadvivaad-qdrant │   │ vaadvivaad-redis  │   │  Google Gemini    │
+│ mongo (7)     │   │ hybrid vector     │   │ sessions, limits, │   │  (external API)   │
+│ users, cases, │   │ search: BM25 +    │   │ hearing state,    │   │  argument + the   │
+│ transcripts   │   │ dense, RRF-fused  │   │ Socket.IO manager │   │  bench's reasoning│
+└──────────────┘   └──────────────────┘   └──────────────────┘   └──────────────────┘
 ```
+
+Five containers in the core stack. Extra capabilities — local embeddings, a
+cross-encoder reranker, full-text record search, live web grounding, voice —
+are **opt-in compose profiles** and are off until you ask for them.
 
 ## Quick start
 
 ```bash
 cp .env.example .env
-# edit .env: at minimum set JWT_SECRET_KEY (e.g. `openssl rand -hex 32`)
+# Fill in every value. compose refuses to start with any of them blank —
+# there are no insecure fallback defaults. At minimum you need:
+#   JWT_SECRET_KEY        openssl rand -hex 32
+#   MONGO_ROOT_PASSWORD   openssl rand -base64 24
+#   QDRANT_API_KEY        openssl rand -hex 32
+#   GOOGLE_API_KEY        a real Gemini key
 docker compose up --build -d
 ```
 
 - Frontend: http://localhost:8081
-- Backend API: http://localhost:8000 (Swagger docs at `/docs`, health at `/health`)
-- Qdrant dashboard: http://localhost:6333/dashboard (inspect collections/points)
-- MongoDB: internal only, auth-protected, data persisted in the
-  `vaadvivaad-mongo-data` volume
+- Backend API: http://localhost:8000 — Swagger at `/docs`, health at `/health`,
+  dependency-aware readiness at `/ready`, Prometheus text at `/metrics`
+- Qdrant dashboard: http://localhost:6333/dashboard
+- Mongo and Redis are internal only, authenticated, and persisted to named
+  volumes
 
-Signup, login, dashboard, and case history work immediately. Qdrant itself
-is fully self-hosted and needs no external account — but it starts with
-empty collections, and the AI-powered features (similar-case/IPC vector
-search, Gemini-generated debate arguments) only produce real results once
-you set a real `GOOGLE_API_KEY` in `.env` (Gemini both generates the
-arguments and computes the embeddings Qdrant searches against) and seed
-some data in. Without a key, those endpoints degrade gracefully (empty
-results / a clean "server busy" error) instead of crashing anything else.
+Signup, login, the dashboard ("The Docket"), and case history work
+immediately. The **corpus starts empty** — retrieval correctly returns
+nothing, and a hearing argues from the statutory elements and the record
+alone until you ingest real judgments (see
+[`vaadvivaad-backend/readme.md`](vaadvivaad-backend/readme.md) → *Corpus
+ingest*). Without a working `GOOGLE_API_KEY`, argument generation and
+embeddings degrade to a clean error rather than crashing anything else.
 
 ```bash
-docker compose logs -f            # tail all services
-docker compose ps                 # status + healthcheck state
-docker compose down                # stop (add -v to also drop the Mongo volume)
+docker compose logs -f
+docker compose ps
+docker compose down          # add -v to also drop the data volumes
 ```
 
-## Project layout
+## What a hearing does
 
-```
-VaadVivaad-Legal-AI/
-├── docker-compose.yml       Orchestrates all three services
-├── .env.example              Template for the required/optional env vars
-├── vaadvivaad-backend/        FastAPI + Socket.IO API           → see its README
-└── vaadvivaad-frontend/       React + Vite SPA                   → see its README
-```
+The flow is an explicit, checkpointed state machine
+(`app/services/debate/machine.py`). Every turn is persisted as it completes,
+so closing the tab — or restarting the backend — resumes the hearing rather
+than losing it and the tokens already spent.
 
-`vaadvivaad-backend/` and `vaadvivaad-frontend/` are independent git repos
-(no top-level VCS ties them together); each has its own README with
-component-specific setup, structure, and standalone (non-Docker) run
-instructions.
+| Stage | What happens |
+|---|---|
+| **Intake** | Free prose (or a dictated recording, or an uploaded FIR / chargesheet / notice / bail order) is screened for scope, welfare and prompt injection, then parsed into a structured case record and shown back for correction before anything expensive runs. |
+| **Research** | The engaged section is routed **IPC ↔ BNS by incident date** and its counterpart shown. Verified precedent is retrieved by hybrid search. The case file is read against itself for timeline impossibilities and contradictions. |
+| **Opening / Evidence / Rebuttal / Closing** | Prosecution and defence argue each phase in turn, grounded in the retrieved statute and authorities and in passages pulled from the case's own documents. A rolling **claim ledger** tracks who claimed what and whether it was answered. You can interject an objection mid-hearing; the affected counsel must address it. |
+| **Order** | The bench delivers a reasoned disposition. Confidence is **capped at what the record supports** — no verified authority, unverified statute text, or a short hearing each lower the ceiling. |
+| **Audit** | The record is analysed for evidentiary gaps (what is missing, how that class of evidence is obtained, who obtains it) and overall case strength. |
 
-## Services
+After the order you can **recall counsel for further submissions** (the prior
+order is kept, not overwritten), **put a question to the bench or either
+counsel**, **translate the whole hearing** into one of 12 Indian languages,
+and **export it as a formatted brief** (PDF / DOCX / HTML).
 
-| Container              | Image                    | Role                              | Runs as   |
-|-------------------------|--------------------------|------------------------------------|-----------|
-| `vaadvivaad-mongo`      | `mongo:7`                | Database (users, saved debates), auth-protected | `mongodb` |
-| `vaadvivaad-qdrant`     | `qdrant/qdrant:v1.19.1`  | Vector search (case laws, IPC sections, evidence types) | `qdrant` |
-| `vaadvivaad-backend`    | `vaadvivaad-backend`     | FastAPI + Socket.IO API            | non-root `vaadvivaad` (uid 1001) |
-| `vaadvivaad-frontend`   | `vaadvivaad-frontend`    | Static SPA behind nginx            | non-root `nginx` (unprivileged image) |
+### The trust boundary
 
-All four sit on a dedicated `vaadvivaad-network` bridge network, with
-healthchecks gating startup order (`frontend` waits on `backend` waits on
-`mongo` + `qdrant`), `restart: unless-stopped`, resource limits, and
-rotated JSON logging (10 MB × 3 files/service).
+The one rule the whole system is built around: **counsel may only cite from
+the shortlist of authorities actually retrieved for the case**, and every
+citation in a generated turn is verified against that shortlist *before the
+turn is emitted*. Anything unmatched is stripped and the turn is flagged.
+
+- An injected "cite *Sharma v. State*" costs the attacker nothing to get the
+  model to say — but the citation still has to exist in the shortlist, and it
+  does not, so it never reaches the transcript.
+- The corpus is **curated-ingest only**. The application never writes to it;
+  every document carries provenance, and retrieval refuses to cite anything
+  not marked verified from a declared source.
+- Live web results (the "outside the record" panel) are **never citable**,
+  never `Precedent` objects, and never enter the debate context — they exist
+  so a practitioner can follow a lead the snapshot missed.
+
+## Capability profiles
+
+The core stack is `mongo`, `qdrant`, `redis`, `backend`, `frontend`.
+Everything else is opt-in and degrades cleanly when absent.
+
+| Profile | Command | Adds | Without it |
+|---|---|---|---|
+| `retrieval` | `docker compose --profile retrieval up -d` | Local `bge-m3` embeddings + `bge-reranker-v2-m3` cross-encoder (Hugging Face TEI). Removes the per-document Gemini embedding call and keeps retrieval working when the Gemini quota is spent. | Gemini embeddings; ranking by the deterministic legal features (section overlap, court seniority, recency). |
+| `search` | `docker compose --profile search up -d` | Meilisearch — typo-tolerant full-text search over every turn, order and consultation, with facets. Powers the ⌘K palette. | A MongoDB text index that finds a case by description and offence but cannot reach the transcript. |
+| `websearch` | `docker compose --profile websearch up -d` | SearXNG — the "outside the record" panel, restricted to an allowlist of official publishers. The only container that talks to the open internet. | The panel reports unavailable. |
+| `voice` | `docker compose --profile voice up -d` | Whisper (dictate the matter) + Piper (hear the hearing, one voice per persona). Independent — either can run alone. | The textarea is the only input. |
+| `tls` | `docker compose --profile tls up -d` | Caddy — automatic Let's Encrypt certificates, no cloud load balancer. | Put your own TLS-terminating proxy in front and set `COOKIE_SECURE=true`. |
+| `observability` | `docker compose --profile observability up -d` | Prometheus + Grafana against `/metrics`. | `/metrics` is still exposed; scrape it with anything. |
+
+See [`ops/README.md`](ops/README.md) for TLS, metrics, secrets and backups.
 
 ## Configuration
 
@@ -88,109 +126,60 @@ Highlights:
 
 | Variable | Required | Purpose |
 |---|---|---|
-| `JWT_SECRET_KEY` | **Yes** | Signs login sessions. `docker compose` refuses to start without it. |
-| `MONGO_ROOT_USERNAME` / `MONGO_ROOT_PASSWORD` | No (has dev default) | MongoDB root credentials — change these for anything beyond local use. |
-| `QDRANT_API_KEY` | No (blank = no auth) | Set this to require auth on Qdrant's REST/dashboard port. The backend always uses it if set. |
-| `EMBEDDING_MODEL` / `EMBEDDING_DIMENSIONS` | No | Gemini embedding model used to vectorize text for Qdrant. Change together if you switch models. |
-| `GOOGLE_API_KEY` | No | Google Gemini key — powers both the AI-generated debate arguments and the embeddings used for vector search. |
-| `COOKIE_SECURE` | No | Set `true` once served over HTTPS (see [Production hardening](#production-hardening)). |
-| `BACKEND_PORT` / `FRONTEND_PORT` / `QDRANT_PORT` | No | Host port mapping, default `8000` / `8081` / `6333`. |
-| `PUBLIC_API_URL` / `PUBLIC_SOCKET_URL` | No | Baked into the frontend build — must be reachable from the *browser*, not just the Docker network. |
+| `JWT_SECRET_KEY` | **Yes** | Signs sessions. Must be ≥ 32 chars; compose and the app both refuse to start without it. |
+| `MONGO_ROOT_USERNAME` / `MONGO_ROOT_PASSWORD` | **Yes** | Mongo runs authenticated; the backend connects with `authSource=admin`. |
+| `QDRANT_API_KEY` | **Yes** | Locks Qdrant's REST/dashboard port and the backend's access to it. |
+| `GOOGLE_API_KEY` | **Yes** | Gemini — argument generation and (by default) embeddings. Endpoints degrade to a clean error without a working key. |
+| `GEMINI_MODEL_FAST` / `GEMINI_MODEL_REASONING` | No | Two tiers, both `gemini-flash-lite-latest` by default (the only tier whose free quota can carry a whole hearing). Point the reasoning tier at a stronger model if you have paid quota — no code change. |
+| `DEBATE_TOKEN_BUDGET` / `DEBATE_MAX_ROUNDS` | No | Hard ceiling per hearing; it aborts rather than run away with your quota, keeping the transcript so far. |
+| `RATELIMIT_DEBATE` / `RATELIMIT_AUTH` / `RATELIMIT_API` | No | Per-user / per-IP budgets. Debates get their own. |
+| `EMBEDDING_PROVIDER` / `EMBEDDING_DIMENSIONS` | No | `gemini` (768-d) or `local` (bge-m3, 1024-d). Changing provider changes the vector width — re-ingest with `--recreate`. |
+| `HYBRID_SEARCH` | No | BM25 sparse vector fused with the dense one by reciprocal rank. On by default; silently dense-only if `fastembed` is unavailable. |
+| `COOKIE_SECURE` | No | `true` once served over HTTPS. |
+| `PUBLIC_API_URL` / `PUBLIC_SOCKET_URL` | No | Baked into the frontend build — must be reachable from the **browser**, not just the Docker network. |
 
-## Production hardening in this pass
+## Project layout
 
-- **Both app containers run as non-root.** Backend has a dedicated
-  `vaadvivaad` system user; frontend uses `nginxinc/nginx-unprivileged`
-  (listens on 8080, no root process at all).
-- **MongoDB requires authentication** (`MONGO_ROOT_USERNAME`/
-  `MONGO_ROOT_PASSWORD`), wired into the backend's connection string with
-  `authSource=admin`. Previously wide open with no auth.
-- **Cookie security is env-driven**, not hardcoded: `COOKIE_SECURE`,
-  `COOKIE_SAMESITE`, and the cookie's `max_age` follow
-  `app/core/config.py` settings instead of a hardcoded `secure=False` /
-  `max_age=3600`. Flip `COOKIE_SECURE=true` once this sits behind HTTPS
-  (a TLS-terminating reverse proxy / load balancer — not included here).
+```
+VaadVivaad-Legal-AI/
+├── docker-compose.yml          Core stack + capability profiles
+├── docker-compose.dev.yml      Hot-reload dev overlay (dev.sh)
+├── .env.example                Every variable, documented inline
+├── ops/                        Caddyfile, Prometheus, SearXNG settings, runbook
+├── .github/workflows/ci.yml    Backend tests, frontend build, compose validation
+├── vaadvivaad-backend/         FastAPI + Socket.IO API          → see its readme
+└── vaadvivaad-frontend/        React + Vite SPA                  → see its README
+```
+
+`vaadvivaad-backend/` and `vaadvivaad-frontend/` are independent git repos,
+each with its own README covering standalone (non-Docker) setup.
+
+## Security posture
+
+- **Both app containers run as non-root** — the backend as a dedicated
+  `vaadvivaad` user, the frontend on `nginx-unprivileged` (port 8080, no root
+  process).
+- **Authentication everywhere.** Every case route and the Socket.IO handshake
+  validate a JWT; the case id is a server-minted opaque uuid, so a room can't
+  be enumerated to watch someone else's hearing. Short access token + rotating
+  refresh token; logout actually revokes the session.
+- **Mongo authenticated**, Qdrant behind an API key, Redis on the internal
+  network only.
+- **No insecure fallback values** — compose interpolation (`${VAR:?...}`) and
+  a Pydantic validator both hard-fail on a missing or weak secret.
+- **Prompt-injection defence in depth** — user text is fenced, generated
+  output is run through an injection canary, and the citation check makes a
+  persuaded model harmless.
 - **nginx**: gzip, `X-Content-Type-Options`, `X-Frame-Options`,
-  `Referrer-Policy`, `X-XSS-Protection`, `server_tokens off`, and
-  `Cache-Control: public, immutable` on hashed `/assets/*` (1 year) vs.
-  `no-cache` on `index.html` so SPA deploys aren't stuck behind a stale
-  cached shell.
-- **`JWT_SECRET_KEY` has no insecure default** — `docker compose up` refuses
-  to start without one set in `.env`, instead of silently running with a
-  guessable secret.
-- Named containers/network/volume (`vaadvivaad-*`) instead of Compose's
-  auto-generated `<dir>-<service>-1` names, healthchecks + resource limits
-  on every service, `.dockerignore`s so secrets/`.git`/`node_modules` never
-  land in an image layer.
-- **No managed cloud database dependency.** Vector search runs on
-  self-hosted Qdrant instead of DataStax AstraDB — one less external
-  account/credential to provision, and it's fully inspectable locally via
-  the Qdrant dashboard.
+  `Referrer-Policy`, `server_tokens off`, long-cache hashed assets vs.
+  `no-cache` on `index.html`.
+- Named containers/network/volumes, healthchecks gating startup order,
+  resource limits and rotated JSON logging on every service, `.dockerignore`
+  so secrets / `.git` / `node_modules` never enter an image layer.
 
-## Vector search: Qdrant, not AstraDB
+## Not legal advice
 
-Originally this ran on DataStax AstraDB (managed, cloud-only, with
-server-side embedding via NVIDIA's `NV-Embed-QA`). It's been replaced with
-self-hosted **Qdrant** (`vaadvivaad-qdrant`) so the whole stack can run
-locally with nothing outside Docker except the Gemini API call.
-
-- Three collections, same names/shape as before: `case_laws`,
-  `ipc_sections`, `evidence_type`. The backend creates them automatically
-  on first use (`app/core/qdrant_client.py`) — no manual setup step.
-- Qdrant doesn't embed text server-side like Astra did, so the backend now
-  computes embeddings itself via Gemini's `embed_content` endpoint
-  (`app/core/embeddings.py`, `GeminiEmbeddings`), using task-specific
-  `RETRIEVAL_DOCUMENT` / `RETRIEVAL_QUERY` embeddings for better retrieval
-  quality than a single symmetric embedding.
-- The three vectordb controllers
-  (`app/controller/vectordbcontroller/*.py`) and the three ingest helpers
-  (`app/utils/save{IPCSection,IPCEvidence,SimilarCases}.py`) were rewritten
-  against `langchain-qdrant`'s `QdrantVectorStore`, translating the old
-  Mongo-style Astra filters (`{"section_number": {"$eq": ...}}`) into
-  Qdrant's `Filter`/`FieldCondition`/`MatchValue` objects.
-- **The collections start empty either way** — AstraDB never had real data
-  loaded into it here either, so this swap doesn't lose anything. Loading
-  real case-law/IPC/evidence data (via the `save*` helpers above) is a
-  separate data-ingestion task, not done as part of this change.
-
-## Login / Signup design
-
-Branded split-screen auth experience
-(`vaadvivaad-frontend/src/components/auth/AuthLayout.jsx`): an animated
-gradient/orb brand panel with feature highlights on the left, a
-glassmorphism form card on the right, floating-label icon inputs, password
-show/hide, a live password-strength meter on signup, and toast
-notifications alongside animated inline error banners. Verified headless
-(Chrome DevTools Protocol) in both light and dark theme, at a mobile
-viewport, and through the password-strength and invalid-login interaction
-paths — no console errors in any of them.
-
-## Fixes that were needed to get this running at all
-
-- **The backend Dockerfile ran the wrong ASGI app.** `uvicorn app.main:app`
-  served the bare FastAPI app, but Socket.IO is mounted separately as
-  `sio_app = socketio.ASGIApp(sio, other_asgi_app=app)` in `main.py`. Since
-  the entire debate feature runs over Socket.IO, it silently 404'd on every
-  deploy using that Dockerfile. Now runs `app.main:sio_app`.
-- **The frontend hardcoded a stray production Socket.IO URL**
-  (`https://nyayapravah.info`) inside the case page instead of using the
-  configured API URL, so debates could never connect locally or in Docker.
-  Now uses `VITE_SOCKET_URL` / `VITE_API_URL`.
-- **A broken duplicate route** in the user API: a second
-  `GET /user/debate/:id` handler referenced an undefined variable and would
-  500 on every call. Removed (the working `GET /debate/{debate_id}` handler
-  above it is the real one).
-- **Vite's `base` was hardcoded to `/vaadvivaad/`** while `index.html`/router
-  assumed root — now defaults to `/` (override with `VITE_BASE_PATH` at
-  build time if you need a subpath deployment).
-
-## Known non-blocking gaps
-
-- Dashboard's "All Cases" / "Profile" quick-action links point at routes
-  that don't exist in the router yet (they hit the 404 page). Cosmetic,
-  left alone.
-- `CaseSubmissionForm.jsx` is dead code (unused, navigates to a route that
-  doesn't exist) — harmless, not wired into any page.
-- No TLS termination is included. For real production, put this behind a
-  reverse proxy / load balancer that terminates HTTPS, then set
-  `COOKIE_SECURE=true`.
+VaadVivaad simulates how a matter might be argued. It is a research and
+drafting aid, not a substitute for a licensed advocate, and every section
+number and authority it produces must be checked against the official text
+before any use.

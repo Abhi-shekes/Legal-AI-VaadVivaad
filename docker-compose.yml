@@ -99,6 +99,231 @@ services:
       timeout: 3s
       retries: 5
 
+  # ── Local retrieval models (profile: retrieval) ──────────────────────
+  #
+  # Opt-in. Without them the backend embeds through Gemini and ranks with the
+  # deterministic legal features, exactly as before:
+  #
+  #     docker compose --profile retrieval up -d
+  #
+  # Both are Hugging Face Text Embeddings Inference, Apache-2.0, and both pull
+  # their weights once into the shared model cache volume.
+  #
+  # GPU: swap the image tag for the one matching your card's compute
+  # capability (`86-1.6` for Ampere, `turing-1.6` for Turing) and uncomment the
+  # `deploy.resources.reservations.devices` block. On a 4 GB card run only ONE
+  # of these two on the GPU -- bge-m3 at fp16 is about 2.3 GB -- and leave the
+  # other on CPU, where it is fast enough for the batch sizes involved.
+
+  tei-embed:
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.6
+    container_name: vaadvivaad-tei-embed
+    restart: unless-stopped
+    profiles: ["retrieval"]
+    command: ["--model-id", "BAAI/bge-m3", "--auto-truncate"]
+    volumes:
+      - vaadvivaad-model-cache:/data
+    networks:
+      - vaadvivaad-network
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          # bge-m3 on CPU is throughput-bound, and a bulk ingest is the only
+          # thing that pushes it. At 4 cores a 1000-section statute ingest
+          # took an hour; the box has 12, and nothing else here is CPU-hungry.
+          # Query-time embedding is ~70ms either way.
+          cpus: "10.0"
+          memory: 4g
+        # reservations:
+        #   devices:
+        #     - driver: nvidia
+        #       count: 1
+        #       capabilities: [gpu]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:80/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      # The first start downloads roughly 2 GB of weights; do not mark it
+      # unhealthy while that is still in progress.
+      retries: 40
+      start_period: 300s
+
+  tei-rerank:
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.6
+    container_name: vaadvivaad-tei-rerank
+    restart: unless-stopped
+    profiles: ["retrieval"]
+    command: ["--model-id", "BAAI/bge-reranker-v2-m3", "--auto-truncate"]
+    volumes:
+      - vaadvivaad-model-cache:/data
+    networks:
+      - vaadvivaad-network
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "4.0"
+          memory: 3g
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:80/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 40
+      start_period: 300s
+
+  # ── Search over a user's own record (profile: search) ────────────────
+  #
+  # Opt-in:  docker compose --profile search up -d
+  #
+  # Without it the backend falls back to a MongoDB text index, which finds a
+  # case by its description and offence but cannot reach the transcript. With
+  # it, every turn and every question put to the bench is searchable, with
+  # typo tolerance. ~150 MB resident.
+  #
+  # MEILI_MASTER_KEY follows the same posture as QDRANT_API_KEY: blank means
+  # no auth, which is fine on this private network and not fine if you ever
+  # publish the port. Nothing here maps a host port for that reason.
+  meilisearch:
+    image: getmeili/meilisearch:v1.11
+    container_name: vaadvivaad-meilisearch
+    restart: unless-stopped
+    profiles: ["search"]
+    environment:
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-}
+      MEILI_ENV: ${MEILI_ENV:-development}
+      MEILI_NO_ANALYTICS: "true"
+    volumes:
+      - vaadvivaad-meili-data:/meili_data
+    networks:
+      - vaadvivaad-network
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512m
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:7700/health | grep -q available"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # ── Live grounding (profile: websearch) ──────────────────────────────
+  #
+  # Opt-in:  docker compose --profile websearch up -d
+  #
+  # A metasearch front end over public engines -- no API key, no index, no
+  # account. It is the only container here that talks to the open internet.
+  #
+  # What comes back is never citable and never reaches counsel: the backend
+  # filters it to an allowlist of official publishers and hands it to the UI
+  # in a panel marked as outside the record. See services/websearch.py.
+  searxng:
+    image: searxng/searxng:latest
+    container_name: vaadvivaad-searxng
+    restart: unless-stopped
+    profiles: ["websearch"]
+    environment:
+      SEARXNG_BASE_URL: http://searxng:8080/
+      # Not `:?` -- Compose interpolates every service's environment even for
+      # profiles that are switched off, so a hard requirement here would break
+      # `docker compose up` for everyone not using this profile. SearXNG
+      # refuses to start on an empty secret, which is a loud enough failure
+      # for the people who did opt in.
+      SEARXNG_SECRET: ${SEARXNG_SECRET:-}
+    volumes:
+      - ./ops/searxng/settings.yml:/etc/searxng/settings.yml:ro
+    networks:
+      - vaadvivaad-network
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512m
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/healthz >/dev/null || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ── Voice (profile: voice) ───────────────────────────────────────────
+  #
+  # Opt-in:  docker compose --profile voice up -d
+  #
+  # translation.py already supports Hindi, Marathi, Bengali, Tamil, Telugu and
+  # Gujarati, and the only way into the product is a textarea. These two close
+  # that gap: dictate the matter, and listen to the hearing.
+  #
+  # Both are small. faster-whisper `small` at int8 is about 500 MB resident and
+  # handles the Indic languages well; Piper is ~50 MB and faster than realtime
+  # on a CPU. Neither needs a GPU, and neither implies the other -- the backend
+  # reports each independently at GET /user/voice.
+  whisper:
+    # speaches, not `fedirz/faster-whisper-server`. Same author, same
+    # OpenAI-compatible API -- the earlier project was renamed to this and the
+    # old image has not been rebuilt in nearly two years, which is not a base
+    # to put under a legal product. This one is not brand new either, so it is
+    # worth re-checking when you next touch this file.
+    image: ghcr.io/speaches-ai/speaches:latest-cpu
+    container_name: vaadvivaad-whisper
+    restart: unless-stopped
+    profiles: ["voice"]
+    environment:
+      WHISPER__MODEL: ${WHISPER_MODEL:-Systran/faster-whisper-small}
+      WHISPER__COMPUTE_TYPE: int8
+      # Unload after ten minutes idle. Dictation is bursty and this box is
+      # already carrying an embedding model.
+      WHISPER__TTL: "600"
+    volumes:
+      # Its own volume, not the shared model cache: this image runs as
+      # `ubuntu` while TEI runs as root, and a root-owned named volume
+      # mounted where a non-root process must write fails at first use.
+      - vaadvivaad-whisper-cache:/home/ubuntu/.cache/huggingface
+    networks:
+      - vaadvivaad-network
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "4.0"
+          memory: 2g
+
+  piper:
+    image: rhasspy/wyoming-piper:latest
+    container_name: vaadvivaad-piper
+    restart: unless-stopped
+    profiles: ["voice"]
+    # `--data-dir` is required, and the HTTP API is behind `--web-server`;
+    # the Wyoming socket (`--uri`) is the image's primary interface and is
+    # mandatory even when only the web server is used.
+    command:
+      - "--voice"
+      - "en_US-lessac-medium"
+      - "--data-dir"
+      - "/data"
+      - "--download-dir"
+      - "/data"
+      - "--uri"
+      - "tcp://0.0.0.0:10200"
+      - "--web-server"
+      - "--web-server-host"
+      - "0.0.0.0"
+      - "--web-server-port"
+      - "5000"
+    volumes:
+      - vaadvivaad-piper-data:/data
+    networks:
+      - vaadvivaad-network
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 512m
+
   backend:
     build:
       context: ./vaadvivaad-backend
@@ -125,6 +350,29 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-gemini-embedding-001}
       EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:-768}
+      # Retrieval models. Defaults keep Gemini embeddings and no reranker, so
+      # the stack runs unchanged without the `retrieval` profile. Set
+      # EMBEDDING_PROVIDER=local and EMBEDDING_DIMENSIONS=1024 to use bge-m3 --
+      # then re-ingest with --recreate, because the vector width changes.
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-gemini}
+      TEI_EMBED_URL: ${TEI_EMBED_URL:-}
+      TEI_RERANK_URL: ${TEI_RERANK_URL:-}
+      HYBRID_SEARCH: ${HYBRID_SEARCH:-true}
+      # Empty falls back to the MongoDB text index. Set to
+      # http://meilisearch:7700 with the `search` profile running.
+      MEILI_URL: ${MEILI_URL:-}
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-}
+      # Empty disables the "outside the record" panel. Set to
+      # http://searxng:8080 with the `websearch` profile running.
+      SEARXNG_URL: ${SEARXNG_URL:-}
+      WEBSEARCH_ALLOWLIST: ${WEBSEARCH_ALLOWLIST:-}
+      # Voice. Empty leaves the textarea as the only input, which is the
+      # default. Set with the `voice` profile running.
+      WHISPER_URL: ${WHISPER_URL:-}
+      WHISPER_MODEL: ${WHISPER_MODEL:-Systran/faster-whisper-small}
+      # Wyoming socket, not the web UI port: wyoming-piper only
+      # synthesises over the Wyoming protocol.
+      PIPER_URL: ${PIPER_URL:-}
       GOOGLE_API_KEY: ${GOOGLE_API_KEY:?GOOGLE_API_KEY must be set in .env}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8081,http://localhost:5173}
     ports:
@@ -266,6 +514,18 @@ volumes:
     name: vaadvivaad-prometheus-data
   vaadvivaad-grafana-data:
     name: vaadvivaad-grafana-data
+  vaadvivaad-whisper-cache:
+    name: vaadvivaad-whisper-cache
+
+  vaadvivaad-piper-data:
+    name: vaadvivaad-piper-data
+
+  vaadvivaad-meili-data:
+    name: vaadvivaad-meili-data
+
+  vaadvivaad-model-cache:
+    name: vaadvivaad-model-cache
+
   vaadvivaad-redis-data:
     name: vaadvivaad-redis-data
   vaadvivaad-mongo-data:

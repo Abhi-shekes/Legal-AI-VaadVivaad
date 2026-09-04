@@ -1,0 +1,76 @@
+# Development overlay: source is mounted, both services reload on save.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+#
+# Kept as a separate file rather than docker-compose.override.yml, which Docker
+# applies automatically -- this same directory runs the production stack, and a
+# hot-reload server with mounted source is not a thing to start serving by
+# accident.
+#
+# Everything else (mongo, qdrant, redis) is unchanged and keeps its data.
+
+services:
+  backend:
+    # The image is only the Python environment now; the code comes from the
+    # host, so a .py change reloads instead of rebuilding.
+    volumes:
+      - ./vaadvivaad-backend:/app
+    command:
+      - uvicorn
+      - app.main:sio_app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      - --proxy-headers
+      - --reload
+      # Watch only the application package. Watching /app would also cover
+      # .git and the virtualenv, which is a great deal of inotify for no gain.
+      - --reload-dir
+      - /app/app
+    environment:
+      ENVIRONMENT: development
+      LOG_LEVEL: ${LOG_LEVEL:-DEBUG}
+    deploy:
+      resources:
+        limits:
+          # Reloading holds two interpreters briefly; the production 1g cap is
+          # tight enough to OOM during a reload storm.
+          cpus: "2.0"
+          memory: 2g
+
+  frontend:
+    build:
+      context: ./vaadvivaad-frontend
+      target: dev
+    image: vaadvivaad-frontend:dev
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
+    volumes:
+      - ./vaadvivaad-frontend:/app
+      # Anonymous volume, and the single most important line here: it shadows
+      # the host's node_modules so the container keeps its own musl-built
+      # dependencies. Mounting the host's glibc binaries into Alpine is what
+      # made rollup fail to load before.
+      - /app/node_modules
+    environment:
+      VITE_API_URL: ${PUBLIC_API_URL:-http://localhost:8000}
+      VITE_SOCKET_URL: ${PUBLIC_SOCKET_URL:-http://localhost:8000}
+      # Set true only if edits do not trigger a reload (see vite.config.js).
+      VITE_USE_POLLING: ${VITE_USE_POLLING:-false}
+    # `!override` replaces the base list instead of merging into it. Without
+    # it compose keeps the production 8081->8080 mapping too, which publishes a
+    # port nothing in this image listens on -- so http://localhost:8081 in dev
+    # just hangs, with no clue why.
+    ports: !override
+      - "${DEV_FRONTEND_PORT:-5173}:5173"
+    # The production healthcheck probes nginx's /health on 8080, which the dev
+    # server does not serve -- it would sit permanently unhealthy.
+    healthcheck:
+      disable: true
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          # 128m is fine for nginx serving static files and far too little for
+          # a Vite dev server holding a module graph.
+          memory: 2g
