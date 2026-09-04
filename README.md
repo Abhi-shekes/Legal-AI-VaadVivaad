@@ -11,6 +11,46 @@ exportable.
 It runs on free and self-hosted parts. **Google Gemini is the only external
 account**, and several features exist specifically to make even that optional.
 
+![The Docket](docs/screenshots/16-docket.png)
+
+<p align="center"><em>The Docket — every matter you have filed, which way the
+bench leaned, and how firmly the record supported each order.</em></p>
+
+### A hearing, running
+
+![A hearing streaming live](docs/media/02-hearing-streaming.gif)
+
+Prosecution and defence argue in turn while the elements to prove tick off on
+the left and evidence gaps accumulate on the right. You can object mid-hearing.
+
+![A concluded hearing](docs/screenshots/31-hearing-final.png)
+
+The provision engaged with its BNS counterpart, the elements checklist,
+authorities retrieved — and gaps graded *critical* or *material* against the
+record as it stands.
+
+<table>
+<tr>
+<td width="50%"><img src="docs/screenshots/44-order-of-the-bench.png" alt="Order of the bench"></td>
+<td width="50%"><img src="docs/screenshots/23-command-palette-search.png" alt="Command palette"></td>
+</tr>
+<tr>
+<td><em>The order — findings resolved one by one, confidence capped at what the record supports.</em></td>
+<td><em><code>⌘K</code> searches <strong>into</strong> the transcript, not just case titles.</em></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/63-grafana-overview.png" alt="Grafana overview"></td>
+<td><img src="docs/screenshots/46-hearing-dark.png" alt="Dark theme"></td>
+</tr>
+<tr>
+<td><em>Grafana, provisioned by the <code>observability</code> profile.</em></td>
+<td><em>Dark theme throughout.</em></td>
+</tr>
+</table>
+
+📖 **[The full walkthrough](docs/WALKTHROUGH.md)** — all 64 screenshots and
+three screen recordings, covering every page and every feature.
+
 ```
 ┌───────────────────────┐   HTTP + WS   ┌────────────────────────────┐
 │  vaadvivaad-frontend   │ ────────────▶ │   vaadvivaad-backend        │
