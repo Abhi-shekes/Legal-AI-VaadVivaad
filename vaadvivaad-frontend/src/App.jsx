@@ -1,34 +1,34 @@
-import { Suspense, lazy } from "react";
+import { Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
+import { RouteErrorBoundary, lazyWithReload } from "./lib/lazyChunk";
 import "react-toastify/dist/ReactToastify.css";
 import Landing from "./Pages/Landing";
 import Login from "./Pages/Login";
 import Signup from "./Pages/Signup";
 import Page404 from "./Pages/Page404";
-const Dashboard = lazy(() => import("./Pages/Dashboard"));
+const Dashboard = lazyWithReload(() => import("./Pages/Dashboard"), "dashboard");
 
 import PublicLayout from "./layouts/PublicLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
-import useAuthStore from "./store/authStore";
 import { useSession } from "./hooks/useSession";
-const Case = lazy(() => import("./Pages/Case"));
-const Contact = lazy(() => import("./Pages/Contact"));
-const CaseDetails = lazy(() => import("./Pages/CaseDetails"));
+const Case = lazyWithReload(() => import("./Pages/Case"), "case");
+const Contact = lazyWithReload(() => import("./Pages/Contact"), "contact");
+const CaseDetails = lazyWithReload(() => import("./Pages/CaseDetails"), "case-details");
 import PublicRoute from "./components/PublicRoute";
-const Terms = lazy(() => import("./Pages/Terms"));
-const Privacy = lazy(() => import("./Pages/Privacy"));
+const Terms = lazyWithReload(() => import("./Pages/Terms"), "terms");
+const Privacy = lazyWithReload(() => import("./Pages/Privacy"), "privacy");
 
 // ... existing imports
 
 function App() {
   // One server-side session check per load; routes wait on it.
   useSession();
-  const { role } = useAuthStore((state) => state);
 
   return (
     <>
     <ToastContainer position="top-right" theme="colored" autoClose={3500} newestOnTop />
+    <RouteErrorBoundary>
     <Suspense fallback={<div className="min-h-screen" />}>
     <Routes>
       {/* Public Routes */}
@@ -78,6 +78,18 @@ function App() {
           }
         />
 
+        {/* Resume. Every create response has returned `resume_url` pointing
+            here; there was no such route, so closing the tab mid-hearing left
+            the case unreachable. */}
+        <Route
+          path="/user/case/:id"
+          element={
+            <ProtectedRoute>
+              <Case />
+            </ProtectedRoute>
+          }
+        />
+
         <Route
           path="/case/:id"
           element={
@@ -93,6 +105,7 @@ function App() {
       <Route path="*" element={<Page404 />} />
     </Routes>
     </Suspense>
+    </RouteErrorBoundary>
     </>
   );
 }

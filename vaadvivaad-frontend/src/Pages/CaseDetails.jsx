@@ -1,150 +1,215 @@
-import { useState, useEffect, useRef } from "react"
-import { useParams, Link } from "react-router-dom"
-import { api } from "../lib/api"
-import { ArrowLeft, AlertTriangle, Loader2 } from "lucide-react"
-import DebateChat from "../components/case/DebateChat"
-import AppHeader from "../components/AppHeader"
+import { useEffect, useState } from "react"
+import { Link, useParams } from "react-router-dom"
+import { AlertTriangle, ArrowLeft, Loader2, Radio } from "lucide-react"
+
+import AppShell from "../layouts/AppShell"
+import ConsultPanel from "../components/hearing/ConsultPanel"
+import ElementsChecklist from "../components/hearing/ElementsChecklist"
+import PriorRulings from "../components/hearing/PriorRulings"
+import Transcript from "../components/hearing/Transcript"
+import VerdictBanner from "../components/hearing/VerdictBanner"
+import CaseFilePanel from "../components/case/CaseFilePanel"
+import EvidenceGapsCard from "../components/case/EvidenceGapsCard"
+import OutsideRecordPanel from "../components/case/OutsideRecordPanel"
+import TimelinePanel from "../components/case/TimelinePanel"
+import StrengthCard from "../components/case/StrengthCard"
 import useAuthStore from "../store/authStore"
 import themeStore from "../store/themeStore"
 import useLogout from "../hooks/useLogout"
+import { api } from "../lib/api"
+import { hydrateFromDoc, titleFromDoc } from "../lib/caseDoc"
 
-const CaseDetails = () => {
-    const { id } = useParams()
-    const [messages, setMessages] = useState([])
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState(null)
-    const [caseTitle, setCaseTitle] = useState("Case details")
-    const debateOutputRef = useRef(null)
+/**
+ * The record of a concluded hearing.
+ *
+ * Previously this read `response.data.status` -- an axios envelope the API
+ * client does not produce -- and then `debate_history` and `ipc_section`, which
+ * the backend stopped sending, so the page reliably rendered nothing.
+ *
+ * It now reads the stored document through the shared mapper and renders it
+ * with the same transcript, checklist and verdict components the live hearing
+ * uses, so the record and the hearing cannot drift apart.
+ */
+export default function CaseDetails() {
+  const { id } = useParams()
+  const [doc, setDoc] = useState(null)
+  const [view, setView] = useState(null)
+  const [translation, setTranslation] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
-    const { user } = useAuthStore((state) => state)
-    const { theme, changeTheme } = themeStore((state) => state)
-    const dark = theme === "dark"
-    const handleLogout = useLogout()
+  const { user } = useAuthStore((state) => state)
+  const { theme, changeTheme } = themeStore((state) => state)
+  const handleLogout = useLogout()
 
-
-    useEffect(() => {
-        const fetchCaseDetails = async () => {
-            try {
-                setLoading(true)
-                const response = await api.getCase(id)
-
-                if (response.data.status === "success") {
-                    const data = Array.isArray(response.data.data) ? response.data.data[0] : response.data.data;
-
-                    if (data) {
-                        setCaseTitle(data.title || "Legal case details")
-
-                        const history = data.debate_history || []
-                        const displayMessages = []
-
-                        if (history.length > 0) {
-                            const firstItem = history[0]
-                            displayMessages.push({
-                                type: "initial_response",
-                                role: firstItem.role || "supporting",
-                                argument: firstItem.argument,
-                                ipc_section: data.ipc_section,
-                                similar_case: data.similar_case,
-                                processed_prompt: { refined_prompt: "Existing case record" },
-                                timestamp: data.created_at ? new Date(data.created_at).toLocaleTimeString() : null
-                            })
-
-                            const subsequentItems = history.slice(1).map(item => ({
-                                ...item,
-                                type: "debate_response"
-                            }))
-                            displayMessages.push(...subsequentItems)
-                        }
-
-                        if (data.status === "completed" || history.length > 1) {
-                            displayMessages.push({
-                                type: "debate_concluded",
-                                total_rounds: history.length,
-                                timestamp: data.updated_at ? new Date(data.updated_at).toLocaleTimeString() : null
-                            })
-                        }
-
-                        setMessages(displayMessages)
-                    } else {
-                        setError("Case data not found.")
-                    }
-                } else {
-                    setError("Failed to fetch case details.")
-                }
-            } catch (err) {
-                console.error("Error fetching case details:", err)
-                setError(err.message || "An error occurred while loading the case.")
-            } finally {
-                setLoading(false)
-            }
+  useEffect(() => {
+    let cancelled = false
+    const fetchCase = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const response = await api.getCase(id)
+        if (cancelled) return
+        if (response?.status !== "success" || !response.data) {
+          setError("That case could not be found.")
+          return
         }
-
-        fetchCaseDetails()
-    }, [id, apiUrl])
-
-    if (loading) {
-        return (
-            <div className={`min-h-screen flex flex-col items-center justify-center gap-3 ${dark ? "bg-ink text-white" : "bg-parchment text-ink-blue"}`}>
-                <Loader2 size={28} className="animate-spin text-brass" />
-                <p className={`text-sm font-medium ${dark ? "text-gray-400" : "text-ink-blue/60"}`}>Loading case record…</p>
-            </div>
-        )
+        setDoc(response.data)
+        setView(hydrateFromDoc(response.data))
+      } catch (err) {
+        if (!cancelled) setError(err?.message || "The case record could not be loaded.")
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
     }
-
-    if (error) {
-        return (
-            <div className={`min-h-screen flex flex-col items-center justify-center p-6 text-center ${dark ? "bg-ink text-white" : "bg-parchment text-ink-blue"}`}>
-                <div className="w-14 h-14 rounded-full bg-dissent/15 flex items-center justify-center mb-4">
-                    <AlertTriangle size={22} className="text-dissent" />
-                </div>
-                <h2 className="font-display text-2xl mb-2">Unable to load case</h2>
-                <p className={`mb-6 max-w-md text-sm ${dark ? "text-gray-400" : "text-ink-blue/60"}`}>{error}</p>
-                <Link
-                    to="/user/dashboard"
-                    className="inline-flex items-center gap-2 bg-brass text-ink font-semibold px-6 py-2.5 rounded-full text-sm hover:bg-brass/90 transition-colors"
-                >
-                    Return to dashboard
-                </Link>
-            </div>
-        )
+    fetchCase()
+    return () => {
+      cancelled = true
     }
+  }, [id])
 
+  const header = {
+    user,
+    onLogout: handleLogout,
+    changeTheme,
+    dark: theme === "dark",
+    center: (
+      <Link
+        to="/user/dashboard"
+        className="inline-flex items-center gap-1.5 text-[13px] font-medium text-content/60 hover:text-accent transition-colors duration-ui"
+      >
+        <ArrowLeft size={14} />
+        Back to the docket
+      </Link>
+    ),
+  }
+
+  if (loading) {
     return (
-        <div className={`min-h-screen ${dark ? "bg-ink text-white" : "bg-parchment text-ink-blue"}`}>
-            <AppHeader
-                dark={dark}
-                changeTheme={changeTheme}
-                user={user}
-                onLogout={handleLogout}
-                center={
-                    <Link
-                        to="/user/dashboard"
-                        className={`inline-flex items-center gap-1.5 text-sm font-medium transition-colors ${dark ? "text-gray-400 hover:text-white" : "text-ink-blue/60 hover:text-ink-blue"}`}
-                    >
-                        <ArrowLeft size={14} />
-                        Back to dashboard
-                    </Link>
-                }
-            />
-
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 md:px-10 py-10 md:py-12">
-                <div className="mb-8">
-                    <p className="docket-label text-xs text-brass mb-2">On the record</p>
-                    <h1 className="font-display text-3xl md:text-4xl mb-2">{caseTitle}</h1>
-                    <p className={`font-mono text-xs ${dark ? "text-gray-500" : "text-ink-blue/40"}`}>Case ID: {id}</p>
-                </div>
-
-                <DebateChat
-                    messages={messages}
-                    isSubmitting={false}
-                    isConnected={false}
-                    typingState={{ isTyping: false }}
-                    debateOutputRef={debateOutputRef}
-                    dark={dark}
-                />
-            </main>
+      <AppShell header={header}>
+        <div className="flex flex-col items-center justify-center gap-3 py-32">
+          <Loader2 size={26} className="animate-spin text-accent" />
+          <p className="text-[13px] text-content/55">Loading the case record…</p>
         </div>
+      </AppShell>
     )
-}
+  }
 
-export default CaseDetails;
+  if (error) {
+    return (
+      <AppShell header={header}>
+        <div className="flex flex-col items-center justify-center gap-3 py-32 text-center">
+          <div className="w-12 h-12 rounded-full bg-dissent/15 flex items-center justify-center">
+            <AlertTriangle size={22} className="text-dissent" />
+          </div>
+          <h2 className="font-display text-2xl">Unable to load this case</h2>
+          <p className="text-[13px] text-content/55 max-w-md">{error}</p>
+          <Link
+            to="/user/dashboard"
+            className="mt-2 inline-flex items-center gap-2 bg-accent-solid text-accent-on font-semibold
+                       px-5 py-2.5 rounded-lg text-[13px] hover:brightness-105 transition-all duration-ui"
+          >
+            Back to the docket
+          </Link>
+        </div>
+      </AppShell>
+    )
+  }
+
+  const unfinished = doc?.stage !== "done" && doc?.stage !== "failed"
+  const filed = doc?.created_at
+    ? new Date(doc.created_at).toLocaleDateString(undefined, {
+        year: "numeric", month: "long", day: "numeric",
+      })
+    : null
+
+  const turns = translation?.turns
+    ? view.turns.map((t) => {
+        const tr = translation.turns.find((x) => x.index === t.index)
+        return tr ? { ...t, turn: { ...t.turn, headline: tr.headline, argument: tr.argument } } : t
+      })
+    : view.turns
+
+  return (
+    <AppShell header={header}>
+      <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <p className="docket-label text-[10px] text-accent mb-2">On the record</p>
+          <h1 className="font-display text-3xl lg:text-4xl mb-2">{titleFromDoc(doc)}</h1>
+          <p className="font-mono text-[11.5px] text-content/45">
+            {filed ? `Filed ${filed} · ` : ""}
+            {view.turns.length} {view.turns.length === 1 ? "turn" : "turns"} · {id}
+          </p>
+        </div>
+
+        {unfinished && (
+          <Link
+            to={`/user/case/${id}`}
+            className="inline-flex items-center gap-2 bg-accent-solid text-accent-on font-semibold
+                       px-5 py-2.5 rounded-lg text-[13px] hover:brightness-105 transition-all duration-ui"
+          >
+            <Radio size={15} />
+            Resume this hearing
+          </Link>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 lg:gap-8">
+        <aside className="xl:col-span-3 order-2 xl:order-1">
+          <div className="xl:sticky xl:top-24">
+            <ElementsChecklist details={view.caseDetails} turns={view.turns} />
+          </div>
+        </aside>
+
+        <section className="xl:col-span-6 order-1 xl:order-2 min-w-0 space-y-6">
+          <Transcript
+            turns={turns}
+            objections={view.objections.map((text, i) => ({
+              // Stored objections carry no position, so they sit at the head of
+              // the record rather than being invented into the middle of it.
+              text: typeof text === "string" ? text : text.text,
+              afterIndex: -1,
+              at: i,
+            }))}
+            empty={{
+              title: "Nothing was argued",
+              body: "This matter has no turns on the record.",
+            }}
+          />
+
+          {view.ruling && (
+            <VerdictBanner
+              ruling={view.ruling}
+              caseId={id}
+              onFileAnother={null}
+              onTranslated={setTranslation}
+              translation={translation}
+            />
+          )}
+
+          <PriorRulings rulings={view.priorRulings} />
+
+          {/* The record shows the exchange but does not take new questions --
+              asking is done from the hearing itself. */}
+          {view.consultations.length > 0 && (
+            <ConsultPanel
+              caseId={id}
+              precedents={view.caseDetails?.precedents || []}
+              readOnly
+            />
+          )}
+        </section>
+
+        <aside className="xl:col-span-3 order-3">
+          <div className="xl:sticky xl:top-24 space-y-4">
+            {view.gaps && <EvidenceGapsCard gaps={view.gaps} />}
+            {view.strength && <StrengthCard strength={view.strength} />}
+            <TimelinePanel caseId={id} />
+            <CaseFilePanel caseId={id} />
+            <OutsideRecordPanel caseId={id} />
+          </div>
+        </aside>
+      </div>
+    </AppShell>
+  )
+}

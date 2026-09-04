@@ -2,6 +2,60 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Token layer ──────────────────────────────────────────────────────────
+   Semantic surfaces and content colours, held as RGB channels so Tailwind's
+   opacity modifiers work against them (`bg-surface/60`, `text-content/45`).
+
+   This is what replaces the ~160 hand-written `dark ? "..." : "..."` ternaries
+   scattered through the components: one class such as `text-content/60` now
+   resolves correctly in both themes, because the token underneath it flips.
+
+   Three surfaces, not one. Everything used to be the same card at the same
+   elevation, which is precisely what flattened the hierarchy.
+   ─────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --ground:          247 243 234;
+  --surface:         255 255 255;
+  --surface-raised:  255 255 255;
+  --surface-sunken:  242 238 227;
+  --content:          27  42  74;
+  --line:             27  42  74;
+  --brass:           138 107  34;   /* readable as text on parchment */
+  --brass-solid:     199 160  70;   /* fills, and text on ink */
+  --on-brass:         11  14  20;
+  --verdict:          44 122  80;
+  --dissent:         155  51  48;
+
+  --elev-1: 0 1px 2px rgb(27 42 74 / .05);
+  --elev-2: 0 1px 2px rgb(27 42 74 / .05), 0 8px 24px -16px rgb(27 42 74 / .35);
+  --elev-3: 0 12px 32px -12px rgb(27 42 74 / .28);
+
+  /* Motion budget: two durations and one easing for the whole app. */
+  --dur-ui: 120ms;
+  --dur-enter: 320ms;
+  --ease: cubic-bezier(.2, .7, .3, 1);
+}
+
+.dark {
+  --ground:           11  14  20;
+  --surface:          18  22  31;
+  --surface-raised:   23  28  40;
+  --surface-sunken:    8  10  15;
+  --content:         236 239 245;
+  --line:            255 255 255;
+  --brass:           217 182  98;
+  --brass-solid:     199 160  70;
+  --on-brass:         11  14  20;
+  --verdict:          88 178 133;
+  --dissent:         208 124 121;
+
+  --elev-1: 0 1px 2px rgb(0 0 0 / .4);
+  --elev-2: 0 1px 2px rgb(0 0 0 / .4), 0 8px 24px -16px rgb(0 0 0 / .8);
+  --elev-3: 0 12px 32px -12px rgb(0 0 0 / .7);
+}
+
+/* Legacy names still referenced by the marketing and auth pages. */
 :root {
   --legal-blue: #1B2A4A;
   --legal-gold: #C7A046;
@@ -13,6 +67,55 @@
   --opposing-red-light: #C25555;
   --ink: #0B0E14;
   --parchment: #F7F3EA;
+}
+
+@layer base {
+  html {
+    /* The theme store stamps this too; the declaration keeps form controls and
+       scrollbars correct before React has mounted. */
+    color-scheme: light;
+  }
+  html.dark { color-scheme: dark; }
+
+  body {
+    background-color: rgb(var(--ground));
+    color: rgb(var(--content));
+  }
+
+  /* One focus ring for the whole app, rather than a per-input `focus:ring`
+     that half the controls were missing. */
+  :focus-visible {
+    outline: 2px solid rgb(var(--brass-solid));
+    outline-offset: 2px;
+    border-radius: 3px;
+  }
+
+  ::selection {
+    background: rgb(var(--brass-solid) / .28);
+  }
+}
+
+@layer utilities {
+  /* Wide content -- tables, transcripts -- scrolls in its own container so the
+     page body never scrolls sideways. */
+  .scroll-x { overflow-x: auto; overscroll-behavior-x: contain; }
+
+  /* Reading measure for argument text, which stays capped even though the
+     frame around it is now full-bleed. */
+  .measure { max-width: 68ch; }
+
+  .elev-1 { box-shadow: var(--elev-1); }
+  .elev-2 { box-shadow: var(--elev-2); }
+  .elev-3 { box-shadow: var(--elev-3); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 .font-display { font-family: 'Fraunces', ui-serif, Georgia, serif; }

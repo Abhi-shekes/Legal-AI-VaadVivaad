@@ -37,18 +37,19 @@ const Signup = () => {
     setIsSubmitting(true);
 
     try {
+      // Same envelope fix as Login: `api` returns `{status, data}` itself.
       const resp = await api.signup(name, email, password);
 
-      if (resp.data.status === "success") {
+      if (resp?.status === "success") {
         toast.success("Account created! Redirecting to login…");
         setTimeout(() => navigate("/login"), 1200);
       } else {
-        const msg = resp.data.message || "Signup failed. Please try again.";
+        const msg = resp?.message || "Signup failed. Please try again.";
         setError(msg);
         toast.error(msg);
       }
     } catch (err) {
-      const msg = err.response?.data?.message || "An error occurred. Please try again.";
+      const msg = err?.message || "An error occurred. Please try again.";
       setError(msg);
       toast.error(msg);
     } finally {

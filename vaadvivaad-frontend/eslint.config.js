@@ -29,6 +29,10 @@ export default [
       ...react.configs['jsx-runtime'].rules,
       ...reactHooks.configs.recommended.rules,
       'react/jsx-no-target-blank': 'off',
+      // This codebase does not use PropTypes anywhere -- there is not a single
+      // declaration in src -- so the rule from react/recommended only ever
+      // produced noise that buried the errors worth reading.
+      'react/prop-types': 'off',
       'react-refresh/only-export-components': [
         'warn',
         { allowConstantExport: true },

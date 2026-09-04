@@ -33,12 +33,19 @@ const initialState = {
   concluded: false,
   tokens: null,
   objections: [],
+  startedAt: null,
+  priorRulings: [],
+  continuations: 0,
+  remainingContinuations: null,
+  reopened: false,
 }
 
 function reducer(state, action) {
   switch (action.type) {
     case "reset":
       return { ...initialState, connected: state.connected }
+    case "started":
+      return { ...state, startedAt: Date.now() }
     case "connected":
       return { ...state, connected: action.value }
     case "status":
@@ -80,10 +87,45 @@ function reducer(state, action) {
     }
     case "turn_failed":
       return { ...state, streaming: null, error: action.payload.message }
-    case "objection":
-      return { ...state, objections: [...state.objections, action.payload.text] }
+    case "objection": {
+      // Record where in the transcript the objection landed, so it can be
+      // rendered as the interruption it was rather than collected into a list
+      // nothing ever displayed.
+      const lastIndex = state.turns.reduce((max, t) => Math.max(max, t.index), -1)
+      return {
+        ...state,
+        objections: [
+          ...state.objections,
+          { text: action.payload.text, afterIndex: lastIndex, at: Date.now() },
+        ],
+      }
+    }
+    case "reopened":
+      // Further submissions have been granted. The order being revisited moves
+      // into the history so the transcript and the verdict cannot disagree
+      // about which order is current.
+      return {
+        ...state,
+        reopened: true,
+        concluded: false,
+        stage: "arguing",
+        ruling: null,
+        gaps: null,
+        strength: null,
+        continuations: action.payload.continuations ?? state.continuations,
+        remainingContinuations: action.payload.remaining ?? state.remainingContinuations,
+        priorRulings: action.payload.superseded
+          ? [...state.priorRulings, action.payload.superseded]
+          : state.priorRulings,
+      }
+    case "prior_rulings":
+      return {
+        ...state,
+        priorRulings: action.payload.rulings || [],
+        continuations: action.payload.continuations ?? state.continuations,
+      }
     case "ruling":
-      return { ...state, ruling: action.payload, stage: "analysing" }
+      return { ...state, ruling: action.payload, stage: "analysing", reopened: false }
     case "gaps":
       return { ...state, gaps: action.payload }
     case "strength":
@@ -151,6 +193,8 @@ export function useDebateSocket() {
     socket.on("turn_complete", (d) => dispatch({ type: "turn_complete", payload: d }))
     socket.on("turn_failed", (d) => dispatch({ type: "turn_failed", payload: d }))
     socket.on("objection_accepted", (d) => dispatch({ type: "objection", payload: d }))
+    socket.on("hearing_reopened", (d) => dispatch({ type: "reopened", payload: d }))
+    socket.on("prior_rulings", (d) => dispatch({ type: "prior_rulings", payload: d }))
     socket.on("ruling", (d) => dispatch({ type: "ruling", payload: d }))
     socket.on("evidence_gaps", (d) => dispatch({ type: "gaps", payload: d }))
     socket.on("strength", (d) => dispatch({ type: "strength", payload: d }))
@@ -163,11 +207,22 @@ export function useDebateSocket() {
     }
   }, [])
 
-  const start = useCallback((caseId) => {
+  /**
+   * Join a case and set it running.
+   *
+   * `preserve` keeps whatever is already in state instead of clearing it. That
+   * matters in two places: resuming a hearing that is still in flight, and
+   * continuing one into further submissions. In both the client has already
+   * been given the transcript -- from storage, or because it watched it happen
+   * -- and the server carries on from `step_index` rather than replaying, so
+   * resetting here would blank the record and never refill it.
+   */
+  const start = useCallback((caseId, { preserve = false } = {}) => {
     const socket = socketRef.current
     if (!socket) return
     caseIdRef.current = caseId
-    dispatch({ type: "reset" })
+    if (!preserve) dispatch({ type: "reset" })
+    dispatch({ type: "started" })
     dispatch({ type: "status", stage: "connecting", message: "Opening the hearing…" })
 
     const begin = () => {

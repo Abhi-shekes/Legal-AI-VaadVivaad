@@ -28,24 +28,26 @@ const Login = () => {
     setError("");
 
     try {
+      // `api` returns the parsed body -- `{status, data}` -- not an axios
+      // envelope. Testing `resp.data.status` read a field off the user object,
+      // so a successful 200 login fell into the failure branch and the user was
+      // told "Login failed" while their session cookie was already set.
       const resp = await api.login(email, password);
 
-      if (resp.data.status === "success") {
+      if (resp?.status === "success") {
         toast.success("Welcome back! Redirecting to your dashboard…");
-        const { name, email: confirmedEmail } = resp.data.data || {};
+        const { name, email: confirmedEmail } = resp.data || {};
         setLogIn({ name: name || "", email: confirmedEmail || email }, "user");
         setTimeout(() => navigate("/user/dashboard"), 900);
       } else {
-        const msg = resp.data.message || "Login failed";
+        const msg = resp?.message || "Login failed";
         setError(msg);
         toast.error(msg);
       }
     } catch (err) {
-      const msg = err.response
-        ? err.response?.data?.message || "An error occurred. Please try again."
-        : err.request
-        ? "Network error. Please check your connection."
-        : "An unexpected error occurred.";
+      // ApiError already carries a message written for the user, and sets
+      // `code` to "network_error" when the server could not be reached.
+      const msg = err?.message || "An unexpected error occurred.";
       setError(msg);
       toast.error(msg);
     } finally {
