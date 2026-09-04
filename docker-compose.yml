@@ -342,8 +342,15 @@ services:
       REDIS_URL: redis://redis:6379/0
       QDRANT_URL: http://qdrant:6333
       QDRANT_API_KEY: ${QDRANT_API_KEY:-}
-      GEMINI_MODEL_FAST: ${GEMINI_MODEL_FAST:-gemini-flash-lite-latest}
-      GEMINI_MODEL_REASONING: ${GEMINI_MODEL_REASONING:-gemini-flash-lite-latest}
+      # Pinned, not `-latest`: the alias re-pointed to a model that began
+      # returning a sustained 503 and took both tiers down with it.
+      GEMINI_MODEL_FAST: ${GEMINI_MODEL_FAST:-gemini-3.1-flash-lite}
+      GEMINI_MODEL_REASONING: ${GEMINI_MODEL_REASONING:-gemini-3.1-flash-lite}
+      GEMINI_MODEL_FALLBACK: ${GEMINI_MODEL_FALLBACK:-gemini-3-flash-preview}
+      # Back-compat single-model setting. config.py honours it as the fast
+      # tier, so it has to actually reach the container -- it was documented
+      # as supported while being silently dropped here.
+      GEMINI_MODEL: ${GEMINI_MODEL:-}
       DEBATE_MAX_ROUNDS: ${DEBATE_MAX_ROUNDS:-4}
       DEBATE_TOKEN_BUDGET: ${DEBATE_TOKEN_BUDGET:-120000}
       RATELIMIT_DEBATE: ${RATELIMIT_DEBATE:-5/3600}

@@ -43,8 +43,18 @@ class Settings(BaseSettings):
     # deployment with paid quota can point the reasoning tier at a stronger
     # model without touching code. When they are equal the tier-fallback path
     # is simply a no-op.
-    GEMINI_MODEL_FAST: str = "gemini-flash-lite-latest"
-    GEMINI_MODEL_REASONING: str = "gemini-flash-lite-latest"
+    # Pinned rather than pointed at a `-latest` alias on purpose. The alias
+    # gemini-flash-lite-latest silently re-pointed to gemini-3.5-flash-lite,
+    # which began answering every request with a sustained 503 UNAVAILABLE --
+    # and because both tiers resolved to that one alias, the whole hearing
+    # pipeline went down with it and had nowhere to fall back to.
+    GEMINI_MODEL_FAST: str = "gemini-3.1-flash-lite"
+    GEMINI_MODEL_REASONING: str = "gemini-3.1-flash-lite"
+
+    # Last resort when a tier's breaker is open. Keep this on the cheapest,
+    # most consistently available model -- it is what answers when the
+    # preferred models will not.
+    GEMINI_MODEL_FALLBACK: str = "gemini-3-flash-preview"
 
     # Back-compat: the old single-model setting. If someone has GEMINI_MODEL
     # in their .env, honour it as the fast tier rather than silently ignoring.
@@ -209,6 +219,10 @@ class Settings(BaseSettings):
     @property
     def reasoning_model(self) -> str:
         return self.GEMINI_MODEL_REASONING
+
+    @property
+    def fallback_model(self) -> str:
+        return self.GEMINI_MODEL_FALLBACK or self.GEMINI_MODEL_FAST
 
     @property
     def is_production(self) -> bool:

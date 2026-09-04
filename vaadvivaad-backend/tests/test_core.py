@@ -11,8 +11,13 @@ from __future__ import annotations
 
 import asyncio
 import unittest
+import unittest.mock
 
-from app.core.llm import PartialJSONFieldReader, TokenLedger
+from app.core import llm as llm_module
+from app.core.config import settings
+from app.core.llm import (REASONING, LLMClient, PartialJSONFieldReader,
+                          TokenLedger, _is_capacity_error)
+from app.core.errors import LLMError, LLMRateLimited, LLMTimeout
 from app.core.errors import BudgetExceeded, RateLimited
 from app.core.ratelimit import Limit
 from app.core.store import InMemoryStore, set_store
@@ -1237,3 +1242,149 @@ class WyomingWireFormatTests(unittest.TestCase):
         self.assertEqual(self.v._parse_tcp("piper:10200"), ("piper", 10200))
         self.assertEqual(self.v._parse_tcp("piper"), ("piper", 10200))
         self.assertEqual(self.v._parse_tcp(""), ("", 0))
+
+
+class ModelFallbackTests(unittest.TestCase):
+    """A tier whose breaker is open must route somewhere that still answers.
+
+    The outage this covers: both tiers were configured to the same
+    `-latest` alias, that alias re-pointed onto a model returning a
+    sustained 503, and the downgrade path handed back the very model that
+    had just failed -- so every step of every hearing failed in turn.
+    """
+
+    def setUp(self):
+        self._saved = (
+            settings.GEMINI_MODEL,
+            settings.GEMINI_MODEL_FAST,
+            settings.GEMINI_MODEL_REASONING,
+            settings.GEMINI_MODEL_FALLBACK,
+        )
+        settings.GEMINI_MODEL = ""
+        settings.GEMINI_MODEL_FAST = "fast-model"
+        settings.GEMINI_MODEL_REASONING = "reasoning-model"
+        settings.GEMINI_MODEL_FALLBACK = "fallback-model"
+        llm_module._CIRCUIT_OPEN_UNTIL.clear()
+
+    def tearDown(self):
+        (
+            settings.GEMINI_MODEL,
+            settings.GEMINI_MODEL_FAST,
+            settings.GEMINI_MODEL_REASONING,
+            settings.GEMINI_MODEL_FALLBACK,
+        ) = self._saved
+        llm_module._CIRCUIT_OPEN_UNTIL.clear()
+
+    def test_healthy_tiers_use_their_own_model(self):
+        self.assertEqual(LLMClient._model_for("fast"), "fast-model")
+        self.assertEqual(LLMClient._model_for(REASONING), "reasoning-model")
+
+    def test_open_reasoning_breaker_downgrades_to_fast_tier(self):
+        llm_module._trip_circuit("reasoning-model")
+        self.assertEqual(LLMClient._model_for(REASONING), "fast-model")
+
+    def test_both_tiers_open_routes_to_the_fallback_model(self):
+        llm_module._trip_circuit("reasoning-model")
+        llm_module._trip_circuit("fast-model")
+        self.assertEqual(LLMClient._model_for(REASONING), "fallback-model")
+        self.assertEqual(LLMClient._model_for("fast"), "fallback-model")
+
+    def test_identical_tiers_still_escape_to_the_fallback(self):
+        settings.GEMINI_MODEL_FAST = "same-model"
+        settings.GEMINI_MODEL_REASONING = "same-model"
+        llm_module._trip_circuit("same-model")
+        self.assertEqual(LLMClient._model_for(REASONING), "fallback-model")
+        self.assertEqual(LLMClient._model_for("fast"), "fallback-model")
+
+    def test_fallback_can_be_disabled_by_the_caller(self):
+        llm_module._trip_circuit("reasoning-model")
+        self.assertEqual(
+            LLMClient._model_for(REASONING, allow_fallback=False),
+            "reasoning-model",
+        )
+
+    def test_sustained_unavailability_opens_the_breaker(self):
+        """A retryable error that survives every attempt trips the breaker."""
+        client = LLMClient()
+        calls = []
+
+        def build_config():
+            return unittest.mock.MagicMock(thinking_config=None)
+
+        async def boom(*a, **kw):
+            calls.append(1)
+            raise RuntimeError("503 UNAVAILABLE: model is overloaded")
+
+        client._client = unittest.mock.MagicMock()
+        client._client.aio.models.generate_content = boom
+        with self.assertRaises(Exception):
+            run(client._call_with_retry("p", build_config, "fast-model", "s"))
+        self.assertTrue(llm_module._circuit_is_open("fast-model"))
+
+
+class StreamCapacityFallbackTests(unittest.TestCase):
+    """A stream that dies for capacity reasons must restart elsewhere.
+
+    The bug: the restart fired only on 429, only for the reasoning tier,
+    and only when the two tiers were configured to different models. A 503
+    on a shared model therefore dropped the turn silently -- a hearing
+    reached its order with counsel's closing simply missing.
+    """
+
+    def setUp(self):
+        self._saved = (
+            settings.GEMINI_MODEL_FAST,
+            settings.GEMINI_MODEL_REASONING,
+            settings.GEMINI_MODEL_FALLBACK,
+        )
+        llm_module._CIRCUIT_OPEN_UNTIL.clear()
+
+    def tearDown(self):
+        (
+            settings.GEMINI_MODEL_FAST,
+            settings.GEMINI_MODEL_REASONING,
+            settings.GEMINI_MODEL_FALLBACK,
+        ) = self._saved
+        llm_module._CIRCUIT_OPEN_UNTIL.clear()
+
+    def test_capacity_errors_are_worth_retrying_elsewhere(self):
+        self.assertTrue(_is_capacity_error(LLMRateLimited("429")))
+        self.assertTrue(_is_capacity_error(LLMError("503 unavailable")))
+        self.assertTrue(_is_capacity_error(LLMTimeout("deadline")))
+
+    def test_malformed_requests_are_not_retried_elsewhere(self):
+        err = LLMError("404 model not found")
+        err.retryable = False
+        self.assertFalse(_is_capacity_error(err))
+
+    def test_shared_tiers_still_find_a_next_model(self):
+        settings.GEMINI_MODEL_FAST = "same-model"
+        settings.GEMINI_MODEL_REASONING = "same-model"
+        settings.GEMINI_MODEL_FALLBACK = "rescue-model"
+        self.assertEqual(
+            LLMClient._next_model_after(REASONING, "same-model"), "rescue-model")
+        self.assertEqual(
+            LLMClient._next_model_after("fast", "same-model"), "rescue-model")
+
+    def test_fast_tier_gets_a_next_model_too(self):
+        settings.GEMINI_MODEL_FAST = "fast-model"
+        settings.GEMINI_MODEL_REASONING = "reasoning-model"
+        settings.GEMINI_MODEL_FALLBACK = "rescue-model"
+        self.assertEqual(
+            LLMClient._next_model_after("fast", "fast-model"), "rescue-model")
+
+    def test_reasoning_steps_down_to_fast_before_the_fallback(self):
+        settings.GEMINI_MODEL_FAST = "fast-model"
+        settings.GEMINI_MODEL_REASONING = "reasoning-model"
+        settings.GEMINI_MODEL_FALLBACK = "rescue-model"
+        self.assertEqual(
+            LLMClient._next_model_after(REASONING, "reasoning-model"), "fast-model")
+
+    def test_no_next_model_when_every_candidate_is_open(self):
+        settings.GEMINI_MODEL_FAST = "fast-model"
+        settings.GEMINI_MODEL_REASONING = "reasoning-model"
+        settings.GEMINI_MODEL_FALLBACK = "rescue-model"
+        llm_module._trip_circuit("fast-model")
+        llm_module._trip_circuit("rescue-model")
+        self.assertIsNone(
+            LLMClient._next_model_after(REASONING, "reasoning-model"))

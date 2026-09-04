@@ -172,6 +172,17 @@ def _classify(exc: Exception) -> LLMError:
     return LLMError(message)
 
 
+def _is_capacity_error(err: LLMError) -> bool:
+    """Whether another model is worth trying for this failure.
+
+    Quota refusals, 5xx and timeouts all mean "this model will not serve
+    this request now" rather than "this request is malformed", so they are
+    the ones worth re-attempting elsewhere. A non-retryable error -- a bad
+    model name, a schema violation -- would fail identically anywhere.
+    """
+    return isinstance(err, LLMRateLimited) or err.retryable
+
+
 # ── Partial JSON reading, for streamed structured output ─────────────────
 
 class PartialJSONFieldReader:
@@ -258,16 +269,43 @@ class LLMClient:
 
     @staticmethod
     def _model_for(tier: str, *, allow_fallback: bool = True) -> str:
-        if tier != REASONING:
-            return settings.fast_model
-        preferred = settings.reasoning_model
-        if allow_fallback and _circuit_is_open(preferred) \
-                and settings.fast_model != preferred:
+        """Pick the model for a tier, routing around an open breaker.
+
+        Both tiers consult the breaker, not just the reasoning one. When the
+        two tiers are configured to the same model -- the common case on free
+        quota -- a downgrade to the fast tier would otherwise return the very
+        model that just failed, so the chain ends at a dedicated fallback
+        model that is deliberately not either tier.
+        """
+        preferred = settings.reasoning_model if tier == REASONING \
+            else settings.fast_model
+        if not allow_fallback or not _circuit_is_open(preferred):
+            return preferred
+        candidate = LLMClient._next_model_after(tier, preferred)
+        if candidate:
             log.info("llm.tier_downgraded",
-                     extra={"from": preferred, "to": settings.fast_model,
+                     extra={"from": preferred, "to": candidate,
                             "reason": "circuit_open"})
-            return settings.fast_model
+            return candidate
         return preferred
+
+    @staticmethod
+    def _next_model_after(tier: str, current: str) -> Optional[str]:
+        """The next model to try when `current` will not serve this request.
+
+        The reasoning tier steps down to the fast tier first; either tier
+        then steps to the dedicated fallback. Candidates equal to the model
+        that just failed, or with a breaker of their own already open, are
+        skipped -- which is what makes this correct when both tiers are
+        configured to the same model, the common case on free quota.
+        """
+        chain = [settings.fast_model] if tier == REASONING else []
+        chain.append(settings.fallback_model)
+        for candidate in chain:
+            if candidate and candidate != current \
+                    and not _circuit_is_open(candidate):
+                return candidate
+        return None
 
     @staticmethod
     def _cache_key(model: str, prompt: str, schema: str, system: str) -> str:
@@ -435,17 +473,24 @@ class LLMClient:
                 # A stream that dies part-way has emitted partial text to the
                 # caller; restarting on the cheaper tier is still better than
                 # losing the turn, and the UI replaces the turn on completion.
-                if (
-                    isinstance(err, LLMRateLimited)
-                    and tier == REASONING
-                    and not attempted_fallback
-                    and settings.fast_model != model
-                ):
+                # A stream that dies for capacity reasons -- a quota refusal
+                # (429) or a model that is simply unavailable (5xx/timeout)
+                # -- is recoverable on a different model. Restricting this to
+                # 429, to the reasoning tier, and to the case where the tiers
+                # differ meant a 503 on a shared model silently dropped the
+                # turn: a hearing would reach its order with counsel's
+                # closing missing and nothing but a log line to say why.
+                next_model = (
+                    None if attempted_fallback
+                    else self._next_model_after(tier, model)
+                )
+                if _is_capacity_error(err) and next_model:
                     _trip_circuit(model)
                     attempted_fallback = True
-                    model = settings.fast_model
                     log.warning("llm.stream_fallback_tier",
-                                extra={"step": step, "to": model})
+                                extra={"step": step, "from": model,
+                                       "to": next_model, "code": err.code})
+                    model = next_model
                     buffer.clear()
                     reader = PartialJSONFieldReader(stream_field)
                     yield ("restart", {"reason": "capacity"})
@@ -537,6 +582,15 @@ class LLMClient:
                              extra={"model": model, "floor": _THINKING_FALLBACK})
                     continue
                 if not last.retryable or attempt == settings.LLM_MAX_ATTEMPTS:
+                    # Sustained unavailability deserves the breaker just as
+                    # much as a quota refusal does. A model that has 503'd
+                    # through every attempt will 503 on the next step of the
+                    # same hearing too; opening the breaker here is what lets
+                    # `_model_for` route the rest of the hearing elsewhere
+                    # instead of failing it one step at a time. 429 already
+                    # trips the breaker at the call sites; this covers 5xx.
+                    if last.retryable:
+                        _trip_circuit(model)
                     metrics.inc("vaadvivaad_llm_calls_total", step=step,
                                 outcome=last.code)
                     log.error("llm.failed", extra={"step": step, "model": model,
