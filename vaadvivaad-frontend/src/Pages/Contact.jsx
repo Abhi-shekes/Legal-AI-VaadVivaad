@@ -2,8 +2,12 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, useAnimation } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
-import { Mail, MapPin, ArrowRight } from 'lucide-react';
+import { Mail, MapPin, ArrowRight, Linkedin } from 'lucide-react';
 import themeStore from '../store/themeStore';
+import abhishekPhoto from '../assets/team/abhishek.jpg';
+import deepakPhoto from '../assets/team/deepak.jpg';
+import iffatPhoto from '../assets/team/iffat.jpg';
+import aartiPhoto from '../assets/team/aarti.jpg';
 
 const TEAM = [
   {
@@ -11,28 +15,34 @@ const TEAM = [
     role: 'Student',
     bio: 'Specializes in AI-driven legal research and case-analysis methodology.',
     email: 'abhishek.tiwari24@spit.ac.in',
+    linkedin: 'https://www.linkedin.com/in/abhishek-tiwari-6172a6223/',
+    photo: abhishekPhoto,
   },
   {
     name: 'Deepak Yadav',
     role: 'Student',
     bio: 'Bridges legal expertise and technology — AI algorithms for predictive legal analytics.',
     email: 'deepak.yadav24@spit.ac.in',
+    linkedin: 'https://www.linkedin.com/in/deepak7449/',
+    photo: deepakPhoto,
   },
   {
     name: 'Iffat Patel',
     role: 'Student',
     bio: 'Leads legal research, with expertise in constitutional law and AI research methodology.',
     email: 'iffat.patel24@spit.ac.in',
+    linkedin: 'https://www.linkedin.com/in/iffatspatel',
+    photo: iffatPhoto,
   },
   {
     name: 'Aarti Karande',
     role: 'Mentor',
     bio: 'Specializes in legal document automation and AI-driven contract analysis.',
-    email: 'aarti@legalai.com',
+    email: 'aartimkarande@gmail.com',
+    linkedin: 'https://www.linkedin.com/in/aartimkarande/',
+    photo: aartiPhoto,
   },
 ];
-
-const initials = (name) => name.split(' ').map((p) => p[0]).join('');
 
 const ContactUs = () => {
   const { theme } = themeStore((state) => state);
@@ -103,10 +113,14 @@ const ContactUs = () => {
                 variants={itemVariants}
                 className={`flex flex-col md:flex-row md:items-center gap-5 py-7 ${i !== 0 ? 'docket-rule' : ''}`}
               >
-                <div className={`flex-shrink-0 w-14 h-14 rounded-md flex items-center justify-center font-mono text-sm font-medium border ${dark ? 'border-brass/30 text-brass bg-brass/5' : 'border-ink-blue/15 text-ink-blue bg-ink-blue/5'
-                  }`}>
-                  {initials(member.name)}
-                </div>
+                <img
+                  src={member.photo}
+                  alt={member.name}
+                  loading="lazy"
+                  width={64}
+                  height={64}
+                  className={`flex-shrink-0 w-16 h-16 rounded-full object-cover border ${dark ? 'border-white/15' : 'border-ink-blue/10'}`}
+                />
                 <div className="flex-grow max-w-xl">
                   <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-1.5">
                     <h3 className="font-semibold text-lg">{member.name}</h3>
@@ -116,14 +130,24 @@ const ContactUs = () => {
                     {member.bio}
                   </p>
                 </div>
-                <a
-                  href={`mailto:${member.email}`}
-                  className={`md:ml-auto md:text-right flex-shrink-0 inline-flex items-center gap-1.5 text-sm transition-colors ${dark ? 'text-gray-400 hover:text-brass' : 'text-ink-blue/60 hover:text-brass'
-                    }`}
-                >
-                  <Mail size={13} />
-                  {member.email}
-                </a>
+                <div className={`flex flex-col md:items-end gap-1.5 flex-shrink-0 md:ml-auto text-sm ${dark ? 'text-gray-400' : 'text-ink-blue/60'}`}>
+                  <a
+                    href={`mailto:${member.email}`}
+                    className="inline-flex items-center gap-1.5 transition-colors hover:text-brass"
+                  >
+                    <Mail size={13} />
+                    {member.email}
+                  </a>
+                  <a
+                    href={member.linkedin}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 transition-colors hover:text-brass"
+                  >
+                    <Linkedin size={13} />
+                    LinkedIn
+                  </a>
+                </div>
               </motion.div>
             ))}
           </motion.div>
