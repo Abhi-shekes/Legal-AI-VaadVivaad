@@ -13,8 +13,8 @@ Status: `[x]` done and verified · `[~]` code complete, verification blocked · 
 | **PyPI unreachable** from host and container | `redis`/`structlog`/`slowapi`/`langgraph`/`arq`/`pytest` could not be installed |
 | npm registry reachable **from containers only** | Frontend builds in a `node:20-alpine` container, not on the host |
 | Docker Hub auth unreachable | Images build with `DOCKER_BUILDKIT=0` (legacy builder skips the syntax-directive fetch) |
-| Indian Kanoon / eCourts unreachable | Real corpus ingest cannot be *run* here; the pipeline is built and exercised against a 12-judgment curated seed |
-| Free-tier Gemini quota | The reasoning tier 429s partway through back-to-back hearings; handled by a circuit breaker that drops to the fast tier |
+| Official judgment portals unreachable | Real corpus ingest cannot be *run* here; the pipeline is built and exercised against a 12-judgment curated seed |
+| Free-tier Gemini quota | Both tiers now run `gemini-flash-lite-latest`, the only tier whose free quota carries a whole hearing. The circuit breaker remains for the case where a deployment points the reasoning tier elsewhere |
 
 **Dependency strategy.** Rather than stub the plan out, each piece that would
 have been a third-party package is implemented behind a small interface with a
@@ -27,7 +27,10 @@ stdlib default and a drop-in backend for the real library:
 | `slowapi` | `app/core/ratelimit.py` over the same store | Works in-memory *or* Redis-backed, so it becomes multi-replica correct for free |
 | `langgraph` | `app/services/debate/machine.py` — explicit async state machine | Fixed 5-phase graph; checkpointing stays honest and the swap is contained to one file |
 | `pytest` | stdlib `unittest` | Suite runs on host, in-container, and in CI with no install |
-| `bge-reranker` | Deterministic feature reranker in `retrieval.rerank()` | No model weights downloadable; transparent and unit-tested. Cross-encoder slots in behind the same function |
+| `bge-reranker` | Deterministic feature reranker in `retrieval.rerank()` | No model weights downloadable; transparent and unit-tested. A local cross-encoder slots in behind the same function |
+| hosted LLM observability | `app/core/metrics.py` — Prometheus text, no dependency | Scraped by self-hosted Prometheus/Grafana (`--profile observability`). Nothing leaves the machine |
+| cloud load balancer / WAF | Caddy (`--profile tls`) | Free automatic Let's Encrypt certificates, security headers, `/metrics` blocked at the edge |
+| cloud secrets manager | `.env` at `chmod 600`, or Docker secrets | No key-management subscription needed |
 
 ---
 
@@ -92,22 +95,53 @@ resume from disk:                 OK
 brief export:                     HTML 13.5 KB / DOCX 3.0 KB, disclaimer present
 ```
 
+## Cost posture
+
+Everything in this stack is free software running locally. **Gemini is the
+only external service**, and both model tiers are set to
+`gemini-flash-lite-latest` so a free API key carries a complete hearing.
+
+| Concern | What is used | Cost |
+|---|---|---|
+| Database | MongoDB (self-hosted container) | free |
+| Vector search | Qdrant (self-hosted container) | free |
+| Cache / sessions / queue | Redis (self-hosted container) | free |
+| Corpus | SC portal, eCourts, India Code, Gazette, NJDG | free, official |
+| TLS | Caddy + Let's Encrypt | free |
+| Metrics | in-process `/metrics` + Prometheus + Grafana | free |
+| Document parsing | Gemini native PDF/image reading | Gemini quota |
+| PDF export | WeasyPrint, falling back to headless Chrome | free |
+| DOCX export | OOXML written with the standard library | free |
+| Reranking | deterministic feature scorer, no model weights | free |
+| Reasoning | Gemini flash-lite | free tier |
+
+Removed as unnecessary: the `langchain-core`/`langchain-qdrant`/`langsmith`
+dependency chain (no longer imported anywhere), any commercial legal database,
+and every managed-cloud recommendation.
+
 ## Not done here, and why
 
-- [!] **Real corpus ingest.** Indian Kanoon / eCourts are unreachable from this
+- [!] **Real corpus ingest.** The official portals are unreachable from this
   environment. The pipeline is built, tested and idempotent; it needs a network
-  and a source-terms review. The 12-judgment seed exists so retrieval and
-  citation verification have real ground truth, and is explicitly labelled a
-  seed rather than the corpus.
+  and a source-terms review. Trusted sources are the free official publishers
+  only — the Supreme Court judgment portal, eCourts, India Code, the Gazette
+  and the NJDG. No commercial legal database is required or supported. The
+  12-judgment seed exists so retrieval and citation verification have real
+  ground truth, and is explicitly labelled a seed rather than the corpus.
 - [!] **Concordance sign-off.** All 47 IPC↔BNS mappings ship `verified: false`
   and surface as provisional. A human must check them against the official MHA
   concordance and fill in `_meta.sign_off`; CI fails if anything is marked
   verified without that.
 - [!] **Strength-meter calibration.** Back-testing against labelled verdicts
   needs the real corpus. The decomposition and the deterministic ledger signals
-  are in place; the calibration study is not.
-- [!] **TLS, WAF, secrets manager, managed datastores.** Infrastructure
-  decisions that need cloud accounts.
+  are in place; the calibration study is not. Nothing paid is involved — it
+  needs data, not a subscription.
+- [x] **TLS, edge protection, secrets, metrics.** Done with free self-hosted
+  parts instead of cloud services: Caddy for automatic Let's Encrypt
+  certificates and security headers (`--profile tls`), Prometheus and Grafana
+  for metrics (`--profile observability`), `.env`/Docker secrets for
+  credentials. Mongo, Qdrant and Redis stay self-hosted — no managed database
+  is used anywhere.
 - [~] **Redis path.** Code complete and selected automatically via `REDIS_URL`;
   compose now runs a Redis service, but the running container predates the
   `redis` package so it is still on the in-memory store here. `docker compose

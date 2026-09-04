@@ -1,0 +1,17 @@
+# Optional, entirely self-hosted metrics collection.
+#   docker compose --profile observability up -d
+# Prometheus and Grafana are both open source; nothing is sent anywhere.
+global:
+  scrape_interval: 15s
+  evaluation_interval: 30s
+
+scrape_configs:
+  - job_name: vaadvivaad-backend
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["backend:8000"]
+
+  - job_name: qdrant
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["qdrant:6333"]

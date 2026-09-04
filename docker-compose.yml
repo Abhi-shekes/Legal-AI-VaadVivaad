@@ -118,7 +118,7 @@ services:
       QDRANT_URL: http://qdrant:6333
       QDRANT_API_KEY: ${QDRANT_API_KEY:-}
       GEMINI_MODEL_FAST: ${GEMINI_MODEL_FAST:-gemini-flash-lite-latest}
-      GEMINI_MODEL_REASONING: ${GEMINI_MODEL_REASONING:-gemini-flash-latest}
+      GEMINI_MODEL_REASONING: ${GEMINI_MODEL_REASONING:-gemini-flash-lite-latest}
       DEBATE_MAX_ROUNDS: ${DEBATE_MAX_ROUNDS:-4}
       DEBATE_TOKEN_BUDGET: ${DEBATE_TOKEN_BUDGET:-120000}
       RATELIMIT_DEBATE: ${RATELIMIT_DEBATE:-5/3600}
@@ -179,12 +179,93 @@ services:
       timeout: 5s
       retries: 5
 
+  # --- optional: TLS termination (profile: tls) ---
+  # Caddy gets and renews Let's Encrypt certificates by itself. No cloud load
+  # balancer and no certificate purchase; see ops/README.md.
+  caddy:
+    image: caddy:2-alpine
+    container_name: vaadvivaad-caddy
+    profiles: ["tls"]
+    restart: unless-stopped
+    environment:
+      PUBLIC_DOMAIN: ${PUBLIC_DOMAIN:-localhost}
+      ACME_EMAIL: ${ACME_EMAIL:-admin@localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./ops/Caddyfile:/etc/caddy/Caddyfile:ro
+      - vaadvivaad-caddy-data:/data
+      - vaadvivaad-caddy-config:/config
+    networks:
+      - vaadvivaad-network
+    logging: *default-logging
+    depends_on:
+      - backend
+      - frontend
+
+  # --- optional: metrics (profile: observability) ---
+  # Both open source, both entirely local. Nothing leaves the machine.
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: vaadvivaad-prometheus
+    profiles: ["observability"]
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=30d
+    volumes:
+      - ./ops/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - vaadvivaad-prometheus-data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    networks:
+      - vaadvivaad-network
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512m
+
+  grafana:
+    image: grafana/grafana-oss:11.2.0
+    container_name: vaadvivaad-grafana
+    profiles: ["observability"]
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+    volumes:
+      - vaadvivaad-grafana-data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:3000:3000"
+    networks:
+      - vaadvivaad-network
+    logging: *default-logging
+    depends_on:
+      - prometheus
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 384m
+
 networks:
   vaadvivaad-network:
     name: vaadvivaad-network
     driver: bridge
 
 volumes:
+  vaadvivaad-caddy-data:
+    name: vaadvivaad-caddy-data
+  vaadvivaad-caddy-config:
+    name: vaadvivaad-caddy-config
+  vaadvivaad-prometheus-data:
+    name: vaadvivaad-prometheus-data
+  vaadvivaad-grafana-data:
+    name: vaadvivaad-grafana-data
   vaadvivaad-redis-data:
     name: vaadvivaad-redis-data
   vaadvivaad-mongo-data:
