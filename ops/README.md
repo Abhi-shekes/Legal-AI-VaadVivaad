@@ -9,8 +9,11 @@ the application talks to.
 echo "PUBLIC_DOMAIN=example.org" >> .env
 echo "ACME_EMAIL=you@example.org" >> .env
 echo "COOKIE_SECURE=true"        >> .env
-docker compose --profile tls up -d
+docker compose --profile tls up -d   # and `--profile tls down` to stop it
 ```
+
+Caddy is the one service still behind a profile, because it binds `:80` and
+`:443`; everything else in the stack starts and stops with a plain `up`/`down`.
 
 Caddy obtains and renews Let's Encrypt certificates automatically. With
 `PUBLIC_DOMAIN` unset it serves `https://localhost` with a locally-trusted
@@ -18,8 +21,10 @@ certificate, which is enough to exercise the secure-cookie path locally.
 
 ## Metrics
 
+Prometheus and Grafana start with the rest of the stack — `docker compose up
+-d` — and stop with `docker compose down`.
+
 ```bash
-docker compose --profile observability up -d
 # Prometheus  http://localhost:9090
 # Grafana     http://localhost:3000  (admin / admin -- override GRAFANA_PASSWORD)
 ```

@@ -121,8 +121,8 @@ class Settings(BaseSettings):
     # ── Search over a user's own record ──────────────────────────────────
     # Optional. Empty falls back to a MongoDB text index, which searches the
     # case description and offence but not the transcript. Meilisearch
-    # searches everything and tolerates typos; start it with
-    # `docker compose --profile search up -d`.
+    # searches everything and tolerates typos; compose starts it with the rest
+    # of the stack and points this at it.
     MEILI_URL: str = ""
     MEILI_MASTER_KEY: str = ""
 

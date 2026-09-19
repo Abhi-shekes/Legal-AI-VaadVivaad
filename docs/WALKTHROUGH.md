@@ -1,9 +1,9 @@
 # VaadVivaad — a walkthrough
 
-Every screen in the application, captured against a live stack: five core
-containers plus the `retrieval`, `search`, `websearch`, `voice` and
-`observability` profiles, a corpus of 12 verified authorities, and Gemini
-answering for real.
+Every screen in the application, captured against a live stack: everything
+`docker compose up -d` starts — the five core containers plus local retrieval,
+record search, live grounding, voice and metrics — a corpus of 12 verified
+authorities, and Gemini answering for real.
 
 The matter used throughout is a cheating and forgery case — an accused who
 took ₹18,50,000 for a flat against a forged municipal sanction plan, and who
@@ -23,7 +23,7 @@ Penal Code applies and the BNS counterpart is shown alongside it.
 | | |
 |---|---|
 | ![](screenshots/05-landing-scroll-2700.png) | ![](screenshots/07-landing-scroll-4500.png) |
-| How a hearing runs, as a pipeline. | The capability profiles, and what each one costs. |
+| How a hearing runs, as a pipeline. | The capabilities, and what each one costs. |
 
 ## 2. Signing in
 
@@ -118,8 +118,8 @@ as counsel speak to them, and — on the right — evidence gaps graded
 
 Hearings done and failed, citations stripped, circuit trips, rate-limit
 blocks, corpus size, token spend by step, model latency, scope-guard mix and
-turns by phase — provisioned automatically with
-`docker compose --profile observability up -d`.
+turns by phase — provisioned automatically, and up with the rest of the stack
+on `docker compose up -d`.
 
 | | |
 |---|---|

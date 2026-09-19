@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # --- Build stage ---
-FROM node:20-alpine AS build
+FROM node:20-slim AS build
 WORKDIR /app
 
 COPY package.json package-lock.json ./
@@ -27,9 +27,9 @@ RUN npm run build
 #
 # Only the manifests are copied. The source arrives as a bind mount at run
 # time, and node_modules stays in the image (shadowed by an anonymous volume)
-# because these are musl binaries -- the host's are glibc, and mounting those
-# in is exactly what broke rollup before.
-FROM node:20-alpine AS dev
+# so the container never runs the host's native binaries (rollup's platform
+# package is what broke before when the host tree was mounted in).
+FROM node:20-slim AS dev
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci

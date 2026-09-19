@@ -1,3 +1,29 @@
+# The whole stack, in one command.
+#
+#     docker compose up -d       every service below, including retrieval,
+#                                search, live grounding, voice and metrics
+#     docker compose down        stops and removes every one of them
+#
+# Nothing here is behind a compose profile any more, because a profiled
+# service is invisible to a plain `down` as well as a plain `up` -- opting in
+# with `--profile` meant having to remember it again to opt out, and half a
+# stack left running is worse than either.
+#
+# The heavy pieces are still skippable per run, without editing this file:
+#
+#     docker compose up -d --scale tei-embed=0 --scale tei-rerank=0
+#
+# The exception is `caddy`, which stays opt-in: it binds :80 and :443 and
+# wants a real domain, so it is the one service that cannot simply start on a
+# laptop. Run it -- and stop it -- with the profile named on both ends:
+#
+#     docker compose --profile tls up -d
+#     docker compose --profile tls down
+#
+# First `up` on a clean machine pulls roughly 10 GB of images and downloads
+# the embedding, reranker and Whisper weights into their volumes; that happens
+# once, and the containers stay unhealthy until it finishes.
+
 name: vaadvivaad
 
 x-logging: &default-logging
@@ -8,7 +34,7 @@ x-logging: &default-logging
 
 services:
   mongo:
-    image: mongo:7
+    image: mongo:7.0-jammy
     container_name: vaadvivaad-mongo
     restart: unless-stopped
     environment:
@@ -75,7 +101,7 @@ services:
       retries: 5
 
   redis:
-    image: redis:7-alpine
+    image: redis:7.2-alpine
     container_name: vaadvivaad-redis
     restart: unless-stopped
     # Sessions and rate-limit counters are recoverable state, but losing every
@@ -99,12 +125,14 @@ services:
       timeout: 3s
       retries: 5
 
-  # ── Local retrieval models (profile: retrieval) ──────────────────────
+  # ── Local retrieval models ───────────────────────────────────────────
   #
-  # Opt-in. Without them the backend embeds through Gemini and ranks with the
-  # deterministic legal features, exactly as before:
+  # The reranker is used as soon as it is reachable. Embeddings only move off
+  # Gemini when EMBEDDING_PROVIDER=local, because the vector width changes
+  # with it and the corpus has to be re-ingested -- see the backend service.
+  # These two are the memory-hungry half of the stack; to sit a run out:
   #
-  #     docker compose --profile retrieval up -d
+  #     docker compose up -d --scale tei-embed=0 --scale tei-rerank=0
   #
   # Both are Hugging Face Text Embeddings Inference, Apache-2.0, and both pull
   # their weights once into the shared model cache volume.
@@ -119,7 +147,6 @@ services:
     image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.6
     container_name: vaadvivaad-tei-embed
     restart: unless-stopped
-    profiles: ["retrieval"]
     command: ["--model-id", "BAAI/bge-m3", "--auto-truncate"]
     volumes:
       - vaadvivaad-model-cache:/data
@@ -153,7 +180,6 @@ services:
     image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.6
     container_name: vaadvivaad-tei-rerank
     restart: unless-stopped
-    profiles: ["retrieval"]
     command: ["--model-id", "BAAI/bge-reranker-v2-m3", "--auto-truncate"]
     volumes:
       - vaadvivaad-model-cache:/data
@@ -172,9 +198,7 @@ services:
       retries: 40
       start_period: 300s
 
-  # ── Search over a user's own record (profile: search) ────────────────
-  #
-  # Opt-in:  docker compose --profile search up -d
+  # ── Search over a user's own record ──────────────────────────────────
   #
   # Without it the backend falls back to a MongoDB text index, which finds a
   # case by its description and offence but cannot reach the transcript. With
@@ -188,7 +212,6 @@ services:
     image: getmeili/meilisearch:v1.11
     container_name: vaadvivaad-meilisearch
     restart: unless-stopped
-    profiles: ["search"]
     environment:
       MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-}
       MEILI_ENV: ${MEILI_ENV:-development}
@@ -204,14 +227,15 @@ services:
           cpus: "1.0"
           memory: 512m
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:7700/health | grep -q available"]
+      # 127.0.0.1, not localhost: this image resolves `localhost` to ::1 only,
+      # while Meilisearch listens on IPv4 -- the probe was refused every time
+      # and the container sat permanently unhealthy.
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:7700/health | grep -q available"]
       interval: 15s
       timeout: 5s
       retries: 5
 
-  # ── Live grounding (profile: websearch) ──────────────────────────────
-  #
-  # Opt-in:  docker compose --profile websearch up -d
+  # ── Live grounding ───────────────────────────────────────────────────
   #
   # A metasearch front end over public engines -- no API key, no index, no
   # account. It is the only container here that talks to the open internet.
@@ -223,15 +247,15 @@ services:
     image: searxng/searxng:latest
     container_name: vaadvivaad-searxng
     restart: unless-stopped
-    profiles: ["websearch"]
     environment:
       SEARXNG_BASE_URL: http://searxng:8080/
-      # Not `:?` -- Compose interpolates every service's environment even for
-      # profiles that are switched off, so a hard requirement here would break
-      # `docker compose up` for everyone not using this profile. SearXNG
-      # refuses to start on an empty secret, which is a loud enough failure
-      # for the people who did opt in.
-      SEARXNG_SECRET: ${SEARXNG_SECRET:-}
+      # SearXNG refuses to start on an empty secret, and this container is now
+      # part of a plain `up` -- so a blank .env would crash-loop one service of
+      # nine. Hence a placeholder rather than `:?`. It signs preferences and
+      # nothing else, and no host port is published, so the default is only a
+      # local-development convenience: set a real SEARXNG_SECRET in .env before
+      # this reaches anything public.
+      SEARXNG_SECRET: ${SEARXNG_SECRET:-vaadvivaad-local-development-secret}
     volumes:
       - ./ops/searxng/settings.yml:/etc/searxng/settings.yml:ro
     networks:
@@ -249,9 +273,7 @@ services:
       retries: 5
       start_period: 30s
 
-  # ── Voice (profile: voice) ───────────────────────────────────────────
-  #
-  # Opt-in:  docker compose --profile voice up -d
+  # ── Voice ────────────────────────────────────────────────────────────
   #
   # translation.py already supports Hindi, Marathi, Bengali, Tamil, Telugu and
   # Gujarati, and the only way into the product is a textarea. These two close
@@ -270,7 +292,6 @@ services:
     image: ghcr.io/speaches-ai/speaches:latest-cpu
     container_name: vaadvivaad-whisper
     restart: unless-stopped
-    profiles: ["voice"]
     environment:
       WHISPER__MODEL: ${WHISPER_MODEL:-Systran/faster-whisper-small}
       WHISPER__COMPUTE_TYPE: int8
@@ -295,7 +316,6 @@ services:
     image: rhasspy/wyoming-piper:latest
     container_name: vaadvivaad-piper
     restart: unless-stopped
-    profiles: ["voice"]
     # `--data-dir` is required, and the HTTP API is behind `--web-server`;
     # the Wyoming socket (`--uri`) is the image's primary interface and is
     # mandatory even when only the web server is used.
@@ -362,24 +382,25 @@ services:
       # EMBEDDING_PROVIDER=local and EMBEDDING_DIMENSIONS=1024 to use bge-m3 --
       # then re-ingest with --recreate, because the vector width changes.
       EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-gemini}
-      TEI_EMBED_URL: ${TEI_EMBED_URL:-}
-      TEI_RERANK_URL: ${TEI_RERANK_URL:-}
+      # `-` rather than `:-` here and below: these default to the containers
+      # that `up` now starts, but setting one to empty in .env has to mean
+      # "off", which `:-` would silently override back to the default.
+      TEI_EMBED_URL: ${TEI_EMBED_URL-http://tei-embed:80}
+      TEI_RERANK_URL: ${TEI_RERANK_URL-http://tei-rerank:80}
       HYBRID_SEARCH: ${HYBRID_SEARCH:-true}
-      # Empty falls back to the MongoDB text index. Set to
-      # http://meilisearch:7700 with the `search` profile running.
-      MEILI_URL: ${MEILI_URL:-}
+      # Set empty to fall back to the MongoDB text index.
+      MEILI_URL: ${MEILI_URL-http://meilisearch:7700}
       MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-}
-      # Empty disables the "outside the record" panel. Set to
-      # http://searxng:8080 with the `websearch` profile running.
-      SEARXNG_URL: ${SEARXNG_URL:-}
+      # Set empty to disable the "outside the record" panel.
+      SEARXNG_URL: ${SEARXNG_URL-http://searxng:8080}
       WEBSEARCH_ALLOWLIST: ${WEBSEARCH_ALLOWLIST:-}
-      # Voice. Empty leaves the textarea as the only input, which is the
-      # default. Set with the `voice` profile running.
-      WHISPER_URL: ${WHISPER_URL:-}
+      # Voice. Set either of these empty to drop back to the textarea as the
+      # only input; they are independent.
+      WHISPER_URL: ${WHISPER_URL-http://whisper:8000}
       WHISPER_MODEL: ${WHISPER_MODEL:-Systran/faster-whisper-small}
       # Wyoming socket, not the web UI port: wyoming-piper only
       # synthesises over the Wyoming protocol.
-      PIPER_URL: ${PIPER_URL:-}
+      PIPER_URL: ${PIPER_URL-tcp://piper:10200}
       GOOGLE_API_KEY: ${GOOGLE_API_KEY:?GOOGLE_API_KEY must be set in .env}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8081,http://localhost:5173}
     ports:
@@ -435,6 +456,14 @@ services:
       retries: 5
 
   # --- optional: TLS termination (profile: tls) ---
+  # The one service still behind a profile: it binds :80 and :443, which
+  # collides with anything else serving on this machine, and it needs a real
+  # PUBLIC_DOMAIN to be worth starting. Because it is profiled, a plain `down`
+  # will not remove it -- name the profile on both commands:
+  #
+  #     docker compose --profile tls up -d
+  #     docker compose --profile tls down
+  #
   # Caddy gets and renews Let's Encrypt certificates by itself. No cloud load
   # balancer and no certificate purchase; see ops/README.md.
   caddy:
@@ -464,7 +493,6 @@ services:
   prometheus:
     image: prom/prometheus:v2.54.1
     container_name: vaadvivaad-prometheus
-    profiles: ["observability"]
     restart: unless-stopped
     command:
       - --config.file=/etc/prometheus/prometheus.yml
@@ -486,7 +514,6 @@ services:
   grafana:
     image: grafana/grafana-oss:11.2.0
     container_name: vaadvivaad-grafana
-    profiles: ["observability"]
     restart: unless-stopped
     environment:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}

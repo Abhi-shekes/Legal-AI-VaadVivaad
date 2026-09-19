@@ -59,7 +59,7 @@ record as it stands.
 <td><img src="docs/screenshots/46-hearing-dark.png" alt="Dark theme"></td>
 </tr>
 <tr>
-<td><em>Grafana, provisioned by the <code>observability</code> profile.</em></td>
+<td><em>Grafana, provisioned on <code>docker compose up</code>.</em></td>
 <td><em>Dark theme throughout.</em></td>
 </tr>
 </table>
@@ -86,9 +86,10 @@ three screen recordings, covering every page and every feature.
 └──────────────┘   └──────────────────┘   └──────────────────┘   └──────────────────┘
 ```
 
-Five containers in the core stack. Extra capabilities — local embeddings, a
-cross-encoder reranker, full-text record search, live web grounding, voice —
-are **opt-in compose profiles** and are off until you ask for them.
+Five containers carry the core. The extra capabilities — local embeddings, a
+cross-encoder reranker, full-text record search, live web grounding, voice,
+metrics — are separate containers that **`docker compose up` starts along with
+them**, and each degrades cleanly if you leave it out.
 
 ## Quick start
 
@@ -103,10 +104,24 @@ cp .env.example .env
 docker compose up --build -d
 ```
 
+That one command starts the whole stack — core, local retrieval, record
+search, live grounding, voice and metrics — and `docker compose down` stops
+all of it. The first run pulls ~10 GB of images and downloads the embedding,
+reranker and Whisper weights into their volumes, so give it a few minutes; the
+app is usable as soon as `backend` and `frontend` report healthy, and the
+model-backed features come up behind them. On a small machine, leave the two
+heaviest out of the run:
+
+```bash
+docker compose up -d --scale tei-embed=0 --scale tei-rerank=0
+```
+
 - Frontend: http://localhost:8081
 - Backend API: http://localhost:8000 — Swagger at `/docs`, health at `/health`,
   dependency-aware readiness at `/ready`, Prometheus text at `/metrics`
 - Qdrant dashboard: http://localhost:6333/dashboard
+- Grafana: http://localhost:3000 (`admin` / `admin`, override `GRAFANA_PASSWORD`)
+  — Prometheus at http://localhost:9090
 - Mongo and Redis are internal only, authenticated, and persisted to named
   volumes
 
@@ -161,19 +176,22 @@ turn is emitted*. Anything unmatched is stripped and the turn is flagged.
   never `Precedent` objects, and never enter the debate context — they exist
   so a practitioner can follow a lead the snapshot missed.
 
-## Capability profiles
+## Capabilities
 
-The core stack is `mongo`, `qdrant`, `redis`, `backend`, `frontend`.
-Everything else is opt-in and degrades cleanly when absent.
+The core stack is `mongo`, `qdrant`, `redis`, `backend`, `frontend`. Everything
+below joins them on a plain `docker compose up -d`, and a plain
+`docker compose down` stops the lot. To leave one out of a run, scale it to
+zero — `docker compose up -d --scale tei-embed=0` — and unset the matching URL
+in `.env` so the backend takes the fallback in the last column.
 
-| Profile | Command | Adds | Without it |
+| Capability | Containers | Adds | Without it |
 |---|---|---|---|
-| `retrieval` | `docker compose --profile retrieval up -d` | Local `bge-m3` embeddings + `bge-reranker-v2-m3` cross-encoder (Hugging Face TEI). Removes the per-document Gemini embedding call and keeps retrieval working when the Gemini quota is spent. | Gemini embeddings; ranking by the deterministic legal features (section overlap, court seniority, recency). |
-| `search` | `docker compose --profile search up -d` | Meilisearch — typo-tolerant full-text search over every turn, order and consultation, with facets. Powers the ⌘K palette. | A MongoDB text index that finds a case by description and offence but cannot reach the transcript. |
-| `websearch` | `docker compose --profile websearch up -d` | SearXNG — the "outside the record" panel, restricted to an allowlist of official publishers. The only container that talks to the open internet. | The panel reports unavailable. |
-| `voice` | `docker compose --profile voice up -d` | Whisper (dictate the matter) + Piper (hear the hearing, one voice per persona). Independent — either can run alone. | The textarea is the only input. |
-| `tls` | `docker compose --profile tls up -d` | Caddy — automatic Let's Encrypt certificates, no cloud load balancer. | Put your own TLS-terminating proxy in front and set `COOKIE_SECURE=true`. |
-| `observability` | `docker compose --profile observability up -d` | Prometheus + Grafana against `/metrics`. | `/metrics` is still exposed; scrape it with anything. |
+| Local retrieval | `tei-embed`, `tei-rerank` | Local `bge-m3` embeddings + `bge-reranker-v2-m3` cross-encoder (Hugging Face TEI). Removes the per-document Gemini embedding call and keeps retrieval working when the Gemini quota is spent. | Gemini embeddings; ranking by the deterministic legal features (section overlap, court seniority, recency). |
+| Record search | `meilisearch` | Meilisearch — typo-tolerant full-text search over every turn, order and consultation, with facets. Powers the ⌘K palette. | A MongoDB text index that finds a case by description and offence but cannot reach the transcript. |
+| Live grounding | `searxng` | SearXNG — the "outside the record" panel, restricted to an allowlist of official publishers. The only container that talks to the open internet. | The panel reports unavailable. |
+| Voice | `whisper`, `piper` | Whisper (dictate the matter) + Piper (hear the hearing, one voice per persona). Independent — either can run alone. | The textarea is the only input. |
+| TLS | `caddy` — **the one opt-in**, since it binds `:80`/`:443` and wants a real domain. Start *and* stop it with `docker compose --profile tls up -d` / `--profile tls down`. | Caddy — automatic Let's Encrypt certificates, no cloud load balancer. | Put your own TLS-terminating proxy in front and set `COOKIE_SECURE=true`. |
+| Metrics | `prometheus`, `grafana` | Prometheus + Grafana against `/metrics`. | `/metrics` is still exposed; scrape it with anything. |
 
 See [`ops/README.md`](ops/README.md) for TLS, metrics, secrets and backups.
 
@@ -200,7 +218,7 @@ Highlights:
 
 ```
 Legal-AI-VaadVivaad/
-├── docker-compose.yml          Core stack + capability profiles
+├── docker-compose.yml          The whole stack; `up` starts it, `down` stops it
 ├── docker-compose.dev.yml      Hot-reload dev overlay (dev.sh)
 ├── .env.example                Every variable, documented inline
 ├── ops/                        Caddyfile, Prometheus, SearXNG settings, runbook

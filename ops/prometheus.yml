@@ -1,5 +1,5 @@
-# Optional, entirely self-hosted metrics collection.
-#   docker compose --profile observability up -d
+# Entirely self-hosted metrics collection, started by `docker compose up -d`
+# with the rest of the stack.
 # Prometheus and Grafana are both open source; nothing is sent anywhere.
 global:
   scrape_interval: 15s

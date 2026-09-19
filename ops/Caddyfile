@@ -3,7 +3,8 @@
 # Caddy (Apache-2.0) gets and renews Let's Encrypt certificates on its own —
 # no cloud load balancer, no CDN subscription, no certificate to buy. Set
 # PUBLIC_DOMAIN in .env and run `docker compose --profile tls up -d`, then set
-# COOKIE_SECURE=true.
+# COOKIE_SECURE=true. This is the only service kept behind a profile — it binds
+# :80 and :443 — so stop it with `docker compose --profile tls down`.
 #
 # For a machine with no public DNS name, leave PUBLIC_DOMAIN unset and Caddy
 # serves https://localhost with a locally-trusted certificate instead.
